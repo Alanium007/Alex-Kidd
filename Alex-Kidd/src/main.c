@@ -14,6 +14,8 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define PLAYER_JUMP_SPD 600.0f
 #define PLAYER_HOR_SPD 500.0f
 
+#define BLAU  CLITERAL(Color){8, 9, 250}      // Dark Brown
+
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
@@ -56,7 +58,6 @@ int main(void)
     player.speed = 0;
     player.canJump = false;
     EnvItem envItems[] = {
-        {{ 0, 0, 1000, 400 }, 0, LIGHTGRAY },
         {{ 0, 400, 1000, 200 }, 1, BLACK },
         {{ 300, 200, 400, 10 }, 1, GRAY },
         {{ 250, 300, 100, 10 }, 1, GRAY },
@@ -113,7 +114,7 @@ int main(void)
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
-        ClearBackground(LIGHTGRAY);
+        ClearBackground(BLAU);
 
         BeginMode2D(camera);
 
@@ -142,7 +143,7 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
 {
     if (IsKeyDown(KEY_A)) player->position.x -= PLAYER_HOR_SPD * delta;
     if (IsKeyDown(KEY_D)) player->position.x += PLAYER_HOR_SPD * delta;
-    if (IsKeyDown(KEY_W) && player->canJump)
+    if (IsKeyDown(KEY_SPACE) && player->canJump)
     {
         player->speed = -PLAYER_JUMP_SPD;
         player->canJump = false;
