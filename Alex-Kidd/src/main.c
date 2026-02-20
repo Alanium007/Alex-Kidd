@@ -10,9 +10,9 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "raylib.h"
 #include "raymath.h"
 
-#define G 100000
-#define PLAYER_JUMP_SPD 9000.0f
-#define PLAYER_HOR_SPD 350.0f
+#define G 2000
+#define PLAYER_JUMP_SPD 600.0f
+#define PLAYER_HOR_SPD 500.0f
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -46,8 +46,8 @@ int main(void)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 1440;
-    const int screenHeight = 960;
+    const int screenWidth = 1920;
+    const int screenHeight = 1080;
 
     InitWindow(screenWidth, screenHeight, "raylib [core] example - 2d camera platformer");
 
@@ -57,7 +57,7 @@ int main(void)
     player.canJump = false;
     EnvItem envItems[] = {
         {{ 0, 0, 1000, 400 }, 0, LIGHTGRAY },
-        {{ 0, 400, 1000, 200 }, 1, GRAY },
+        {{ 0, 400, 1000, 200 }, 1, BLACK },
         {{ 300, 200, 400, 10 }, 1, GRAY },
         {{ 250, 300, 100, 10 }, 1, GRAY },
         {{ 650, 300, 100, 10 }, 1, GRAY }
@@ -102,18 +102,7 @@ int main(void)
         float deltaTime = GetFrameTime();
 
         UpdatePlayer(&player, envItems, envItemsLength, deltaTime);
-
-        camera.zoom += ((float)GetMouseWheelMove() * 0.05f);
-
-        if (camera.zoom > 3.0f) camera.zoom = 3.0f;
-        else if (camera.zoom < 0.25f) camera.zoom = 0.25f;
-
-        if (IsKeyPressed(KEY_R))
-        {
-            camera.zoom = 1.0f;
-            player.position = (Vector2){ 400, 280 };
-        }
-
+ 
         //if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1) % cameraUpdatersLength;
 
         // Call update camera function by its pointer
@@ -151,9 +140,9 @@ int main(void)
 
 void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float delta)
 {
-    if (IsKeyDown(KEY_LEFT)) player->position.x -= PLAYER_HOR_SPD * delta;
-    if (IsKeyDown(KEY_RIGHT)) player->position.x += PLAYER_HOR_SPD * delta;
-    if (IsKeyDown(KEY_SPACE) && player->canJump)
+    if (IsKeyDown(KEY_A)) player->position.x -= PLAYER_HOR_SPD * delta;
+    if (IsKeyDown(KEY_D)) player->position.x += PLAYER_HOR_SPD * delta;
+    if (IsKeyDown(KEY_W) && player->canJump)
     {
         player->speed = -PLAYER_JUMP_SPD;
         player->canJump = false;
