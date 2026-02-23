@@ -10,8 +10,9 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "raylib.h"
 #include "raymath.h"
 
+
 #define G 2000
-#define PLAYER_JUMP_SPD 600.0f
+#define PLAYER_JUMP_SPD 700.0f
 #define PLAYER_HOR_SPD 500.0f
 
 #define BLAU  CLITERAL(Color){8, 9, 250}      // Dark Brown
@@ -46,6 +47,8 @@ void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* env
 //------------------------------------------------------------------------------------
 int main(void)
 {
+    //SetConfigFlags(FLAG_FULLSCREEN_MODE);
+
     // Initialization
     //--------------------------------------------------------------------------------------
     const int screenWidth = 1920;
@@ -90,7 +93,11 @@ int main(void)
 
     // Main game loop
     while (!WindowShouldClose())
-    {
+    {   
+        
+        if (IsKeyPressed(KEY_F11)) {
+            ToggleFullscreen();
+        }
         // Update
         //----------------------------------------------------------------------------------
         float deltaTime = GetFrameTime();
@@ -117,7 +124,7 @@ int main(void)
         DrawRectangleRec(playerRect, RED);
 
         DrawCircleV(player.position, 5.0f, GOLD);
-
+        
         EndMode2D();
 
         EndDrawing();
