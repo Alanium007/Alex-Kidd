@@ -16,7 +16,13 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define PLAYER_JUMP_SPD 700.0f
 #define PLAYER_HOR_SPD 500.0f
 
-#define BLAU  CLITERAL(Color){8, 9, 250}      // Dark Brown
+#define BLAU  CLITERAL(Color){8, 9, 250}
+
+Texture2D background;
+Texture2D nuvol;
+Texture2D AlexKidd;
+
+// Dark Brown
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -25,16 +31,17 @@ typedef struct Player {
     Vector2 position;
     float speed;
     bool canJump;
+    Texture2D AlexKidd;
 } Player;
 
 typedef struct EnvItem {
     Rectangle rect;
     int blocking;
     Color color;
+    Texture2D nuvol;
 } EnvItem;
 
-Texture2D background;
-Texture2D nuvol;
+
 
 //----------------------------------------------------------------------------------
 // Module Functions Declaration
@@ -51,7 +58,7 @@ void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* env
 //------------------------------------------------------------------------------------
 int main(void)
 {
-    //SetConfigFlags(FLAG_FULLSCREEN_MODE);
+   
 
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -62,9 +69,10 @@ int main(void)
 
     background = LoadTexture("resources/Alex-Kidd-assets.png");
     nuvol = LoadTexture("resources/nuvol.png");
+    AlexKidd = LoadTexture("resources/AlexKidd.png");
 
     Player player = { 0 };
-    player.position = Vector2{ 400, 280 };
+    player.position = Vector2{ 600, 200 };
     player.speed = 0;
     player.canJump = false;
     EnvItem envItems[] = {
@@ -125,22 +133,22 @@ int main(void)
 
         ClearBackground(BLAU);
 
-        
+        DrawTextureEx(nuvol, Vector2{ x, y }, 0, 0.2f, WHITE);
+
+        DrawTextureEx(nuvol, Vector2{ 900, 600 }, 0, 0.2f, WHITE);
 
         BeginMode2D(camera);
 
         for (int i = 0; i < envItemsLength; i++) DrawRectangleRec(envItems[i].rect, envItems[i].color);
 
 
-        Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40.0f, 40.0f };
-        DrawRectangleRec(playerRect, WHITE);
-        //DrawTexture(nuvol, screenWidth - nuvol.width, screenHeight - nuvol.height, WHITE);
-        //DrawTexture(background, 0, 0, WHITE);
-        //DrawTexture(nuvol, 200, 100, WHITE);
-        DrawTextureEx(nuvol, Vector2 { x, y }, 0, 1.0f, WHITE);
-
+        /*Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 35.0f, 40.0f };
+        DrawRectangleRec(playerRect, WHITE);*/
         
-        DrawCircleV(player.position, 5.0f, GOLD);
+        
+      
+        DrawTextureEx(AlexKidd, Vector2{ player.position.x - 30, player.position.y - 76}, 0, 0.6f, WHITE);   //Textura Alex Kidd
+        
         
         EndMode2D();
 
