@@ -9,7 +9,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #include "raylib.h"
 #include "raymath.h"
-
+#include <stdio.h>
 
 #define G 2000
 #define PLAYER_JUMP_SPD 700.0f
@@ -55,6 +55,8 @@ int main(void)
     const int screenHeight = 900;
 
     InitWindow(screenWidth, screenHeight, "raylib [core] example - 2d camera platformer");
+
+    Texture2D texture = LoadTexture("C:/Users/alandt/Documents/GitHub/Alex - Kidd/Alex - Kidd/resources/Alex - Kidd - assets.png");
 
     Player player = { 0 };
     player.position = Vector2{ 400, 280 };
@@ -122,6 +124,7 @@ int main(void)
 
         Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40.0f, 40.0f };
         DrawRectangleRec(playerRect, RED);
+        DrawTexture(texture, screenWidth - texture.width / 1, screenHeight / 1 - texture.height, WHITE);
 
         DrawCircleV(player.position, 5.0f, GOLD);
         
@@ -131,6 +134,7 @@ int main(void)
         //----------------------------------------------------------------------------------
     }
 
+    UnloadTexture(texture);
     // De-Initialization
     //--------------------------------------------------------------------------------------
     CloseWindow();        // Close window and OpenGL context
