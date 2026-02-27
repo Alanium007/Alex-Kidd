@@ -10,6 +10,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "raylib.h"
 #include "raymath.h"
 #include <stdio.h>
+#include <vector>
 
 #define G 2000
 #define PLAYER_JUMP_SPD 700.0f
@@ -31,6 +32,9 @@ typedef struct EnvItem {
     int blocking;
     Color color;
 } EnvItem;
+
+Texture2D background;
+Texture2D nuvol;
 
 //----------------------------------------------------------------------------------
 // Module Functions Declaration
@@ -56,7 +60,8 @@ int main(void)
 
     InitWindow(screenWidth, screenHeight, "raylib [core] example - 2d camera platformer");
 
-    Texture2D texture = LoadTexture("C:/Users/alandt/Documents/GitHub/Alex - Kidd/Alex - Kidd/resources/Alex - Kidd - assets.png");
+    background = LoadTexture("resources/Alex-Kidd-assets.png");
+    nuvol = LoadTexture("resources/nuvol.png");
 
     Player player = { 0 };
     player.position = Vector2{ 400, 280 };
@@ -94,6 +99,8 @@ int main(void)
     //--------------------------------------------------------------------------------------
 
     // Main game loop
+
+    static float x = 400, y = 400;
     while (!WindowShouldClose())
     {   
         
@@ -118,14 +125,21 @@ int main(void)
 
         ClearBackground(BLAU);
 
+        
+
         BeginMode2D(camera);
 
         for (int i = 0; i < envItemsLength; i++) DrawRectangleRec(envItems[i].rect, envItems[i].color);
 
-        Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40.0f, 40.0f };
-        DrawRectangleRec(playerRect, RED);
-        DrawTexture(texture, screenWidth - texture.width / 1, screenHeight / 1 - texture.height, WHITE);
 
+        Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 40.0f, 40.0f };
+        DrawRectangleRec(playerRect, WHITE);
+        //DrawTexture(nuvol, screenWidth - nuvol.width, screenHeight - nuvol.height, WHITE);
+        //DrawTexture(background, 0, 0, WHITE);
+        //DrawTexture(nuvol, 200, 100, WHITE);
+        DrawTextureEx(nuvol, Vector2 { x, y }, 0, 1.0f, WHITE);
+
+        
         DrawCircleV(player.position, 5.0f, GOLD);
         
         EndMode2D();
@@ -134,7 +148,7 @@ int main(void)
         //----------------------------------------------------------------------------------
     }
 
-    UnloadTexture(texture);
+    UnloadTexture(background);
     // De-Initialization
     //--------------------------------------------------------------------------------------
     CloseWindow();        // Close window and OpenGL context
