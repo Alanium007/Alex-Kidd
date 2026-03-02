@@ -73,7 +73,7 @@ int main(void)
     AlexKidd = LoadTexture("resources/AlexKidd.png");
     AlexKiddWalkR = LoadTexture("resources/AlexKiddWalkR.png");
 
-    Rectangle frameRec = { 0.0f, 5.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
+    Rectangle frameRec = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
 
     int currentFrame = 0;
 
