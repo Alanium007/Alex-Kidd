@@ -21,6 +21,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 Texture2D background;
 Texture2D nuvol;
 Texture2D AlexKidd;
+Texture2D AlexKiddWalkR;
 
 // Dark Brown
 
@@ -31,7 +32,7 @@ typedef struct Player {
     Vector2 position;
     float speed;
     bool canJump;
-    Texture2D AlexKidd;
+    Texture2D AlexKiddWalkR;
 } Player;
 
 typedef struct EnvItem {
@@ -70,6 +71,14 @@ int main(void)
     background = LoadTexture("resources/Alex-Kidd-assets.png");
     nuvol = LoadTexture("resources/nuvol.png");
     AlexKidd = LoadTexture("resources/AlexKidd.png");
+    AlexKiddWalkR = LoadTexture("resources/AlexKiddWalkR.png");
+
+    Rectangle frameRec = { 0.0f, 5.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
+
+    int currentFrame = 0;
+
+    int framesCounter = 0;
+    int framesSpeed = 8;
 
     Player player = { 0 };
     player.position = Vector2{ 600, 200 };
@@ -115,11 +124,30 @@ int main(void)
         if (IsKeyPressed(KEY_F11)) {
             ToggleFullscreen();
         }
+
+        framesCounter++;
+
+        
+        if (IsKeyDown(KEY_D)) {
+
+                if (framesCounter >= (60 / framesSpeed))
+                {
+                    framesCounter = 0;
+                    currentFrame++;
+
+                    if (currentFrame > 3) currentFrame = 0;
+
+                    frameRec.x = (float)currentFrame * (float)AlexKiddWalkR.width / 4;
+                }
+           
+        }
         // Update
         //----------------------------------------------------------------------------------
         float deltaTime = GetFrameTime();
 
         UpdatePlayer(&player, envItems, envItemsLength, deltaTime);
+
+
 
         //if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1) % cameraUpdatersLength;
 
@@ -133,9 +161,9 @@ int main(void)
 
         ClearBackground(BLAU);
 
-        DrawTextureEx(nuvol, Vector2{ x, y }, 0, 0.2f, WHITE);
+        DrawTextureEx(nuvol, Vector2{ 100, 100 }, 0, 0.2f, WHITE);
 
-        DrawTextureEx(nuvol, Vector2{ 900, 600 }, 0, 0.2f, WHITE);
+        DrawTextureEx(nuvol, Vector2{ 900, 1000 }, 0, 0.2f, WHITE);
 
         BeginMode2D(camera);
 
@@ -146,8 +174,8 @@ int main(void)
         DrawRectangleRec(playerRect, WHITE);*/
         
         
-      
-        DrawTextureEx(AlexKidd, Vector2{ player.position.x - 30, player.position.y - 76}, 0, 0.6f, WHITE);   //Textura Alex Kidd
+        DrawTextureRec(AlexKiddWalkR, frameRec, Vector2{ player.position.x - 30, player.position.y - 76 }, WHITE);
+        //DrawTextureEx(AlexKiddWalkR, Vector2{ player.position.x - 30, player.position.y - 76}, 0, 2.0f, WHITE);   //Textura Alex Kidd
         
         
         EndMode2D();
