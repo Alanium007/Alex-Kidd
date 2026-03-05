@@ -13,17 +13,21 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include <vector>
 
 #define G 2000
-#define PLAYER_JUMP_SPD 700.0f
+#define PLAYER_JUMP_SPD 1000.0f
 #define PLAYER_HOR_SPD 500.0f
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
 
+//----------------------------------------------------------------------------------
+// TEXTURES
+//----------------------------------------------------------------------------------
+
 Texture2D background;
 Texture2D nuvol;
-Texture2D AlexKidd;
+Texture2D AlexKidd;                                 
 Texture2D AlexKiddWalkR;
+Texture2D AlexKiddWalkL;
 
-// Dark Brown
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -33,6 +37,7 @@ typedef struct Player {
     float speed;
     bool canJump;
     Texture2D AlexKiddWalkR;
+    Texture2D AlexKiddWalkL;
 } Player;
 
 typedef struct EnvItem {
@@ -45,7 +50,7 @@ typedef struct EnvItem {
 
 
 //----------------------------------------------------------------------------------
-// Module Functions Declaration
+// FUNCIONS
 //----------------------------------------------------------------------------------
 void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float delta);
 void UpdateCameraCenter(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
@@ -55,13 +60,13 @@ void UpdateCameraEvenOutOnLanding(Camera2D* camera, Player* player, EnvItem* env
 void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 
 //------------------------------------------------------------------------------------
-// Program main entry point
+// MAIN
 //------------------------------------------------------------------------------------
 int main(void)
 {
    
 
-    // Initialization
+    // INICIALITZACIÓ
     //--------------------------------------------------------------------------------------
     const int screenWidth = 1920;
     const int screenHeight = 900;
@@ -72,8 +77,10 @@ int main(void)
     nuvol = LoadTexture("resources/nuvol.png");
     AlexKidd = LoadTexture("resources/AlexKidd.png");
     AlexKiddWalkR = LoadTexture("resources/AlexKiddWalkR.png");
+    AlexKiddWalkL = LoadTexture("resources/AlexKiddWalkL.png");
 
-    Rectangle frameRec = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
+    Rectangle frameRecR = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
+    Rectangle frameRecL = { 0.0f, 0.0f, ((float)AlexKiddWalkL.width / 4), ((float)AlexKiddWalkL.height) };
 
     int currentFrame = 0;
 
@@ -129,6 +136,7 @@ int main(void)
 
         
         if (IsKeyDown(KEY_D)) {
+   
 
                 if (framesCounter >= (60 / framesSpeed))
                 {
@@ -137,9 +145,22 @@ int main(void)
 
                     if (currentFrame > 3) currentFrame = 0;
 
-                    frameRec.x = (float)currentFrame * (float)AlexKiddWalkR.width / 4;
+                    frameRecR.x = (float)currentFrame * (float)AlexKiddWalkR.width / 4;
                 }
-           
+                
+        }
+        if (IsKeyDown(KEY_A)) {
+
+            if (framesCounter >= (60 / framesSpeed))
+            {
+                framesCounter = 0;
+                currentFrame++;
+
+                if (currentFrame > 3) currentFrame = 0;
+
+                frameRecL.x = (float)currentFrame * (float)AlexKiddWalkR.width / 4;
+            }
+
         }
         // Update
         //----------------------------------------------------------------------------------
@@ -149,9 +170,7 @@ int main(void)
 
 
 
-        //if (IsKeyPressed(KEY_C)) cameraOption = (cameraOption + 1) % cameraUpdatersLength;
-
-        // Call update camera function by its pointer
+ 
         cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);
         //----------------------------------------------------------------------------------
 
@@ -173,8 +192,10 @@ int main(void)
         /*Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 35.0f, 40.0f };
         DrawRectangleRec(playerRect, WHITE);*/
         
+        if (!IsKeyDown(KEY_D)&& !IsKeyDown(KEY_A)) DrawTextureRec(AlexKidd, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+        else if (IsKeyDown(KEY_D))DrawTextureRec(AlexKiddWalkR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+        else if (IsKeyDown(KEY_A))DrawTextureRec(AlexKiddWalkL, frameRecL, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         
-        DrawTextureRec(AlexKiddWalkR, frameRec, Vector2{ player.position.x - 30, player.position.y - 76 }, WHITE);
         //DrawTextureEx(AlexKiddWalkR, Vector2{ player.position.x - 30, player.position.y - 76}, 0, 2.0f, WHITE);   //Textura Alex Kidd
         
         
