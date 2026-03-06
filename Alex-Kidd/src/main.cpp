@@ -27,6 +27,10 @@ Texture2D nuvol;
 Texture2D AlexKidd;                                 
 Texture2D AlexKiddWalkR;
 Texture2D AlexKiddWalkL;
+Texture2D AlexKiddJumpR;
+Texture2D AlexKiddJumpL;
+Texture2D AlexKiddPunyR;
+Texture2D AlexKiddPunyL;
 
 
 //----------------------------------------------------------------------------------
@@ -36,8 +40,7 @@ typedef struct Player {
     Vector2 position;
     float speed;
     bool canJump;
-    Texture2D AlexKiddWalkR;
-    Texture2D AlexKiddWalkL;
+
 } Player;
 
 typedef struct EnvItem {
@@ -78,14 +81,22 @@ int main(void)
     AlexKidd = LoadTexture("resources/AlexKidd.png");
     AlexKiddWalkR = LoadTexture("resources/AlexKiddWalkR.png");
     AlexKiddWalkL = LoadTexture("resources/AlexKiddWalkL.png");
+    AlexKiddJumpR = LoadTexture("resources/AlexKiddJumpR.png");
+    AlexKiddJumpL = LoadTexture("resources/AlexKiddJumpL.png");
+    AlexKiddPunyR = LoadTexture("resources/AlexKiddPunyR.png");
+    AlexKiddPunyL = LoadTexture("resources/AlexKidd.png");
 
     Rectangle frameRecR = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
     Rectangle frameRecL = { 0.0f, 0.0f, ((float)AlexKiddWalkL.width / 4), ((float)AlexKiddWalkL.height) };
+    Rectangle frameRecJump = { 0.0f, 0.0f, ((float)AlexKiddJumpR.width), ((float)AlexKiddJumpR.height) };
+    Rectangle frameRecPunyR = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
 
     int currentFrame = 0;
 
     int framesCounter = 0;
     int framesSpeed = 8;
+
+    int LeftOrRight = NULL;
 
     Player player = { 0 };
     player.position = Vector2{ 600, 200 };
@@ -192,10 +203,16 @@ int main(void)
         /*Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 35.0f, 40.0f };
         DrawRectangleRec(playerRect, WHITE);*/
         
-        if (!IsKeyDown(KEY_D)&& !IsKeyDown(KEY_A)) DrawTextureRec(AlexKidd, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
-        else if (IsKeyDown(KEY_D))DrawTextureRec(AlexKiddWalkR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
-        else if (IsKeyDown(KEY_A))DrawTextureRec(AlexKiddWalkL, frameRecL, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         
+        if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
+        else if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) LeftOrRight = 1;
+
+        if (!IsKeyDown(KEY_D)&& !IsKeyDown(KEY_A)&& player.canJump&& !IsKeyPressed(KEY_ENTER)) DrawTextureRec(AlexKidd, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        else if (IsKeyDown(KEY_D)&& player.canJump)DrawTextureRec(AlexKiddWalkR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+        else if (IsKeyDown(KEY_A)&& player.canJump)DrawTextureRec(AlexKiddWalkL, frameRecL, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+        else if (LeftOrRight == 0 && !player.canJump)DrawTextureRec(AlexKiddJumpR, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+        else if (LeftOrRight == 1 && !player.canJump)DrawTextureRec(AlexKiddJumpL, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+        else if (IsKeyPressed(KEY_ENTER))DrawTextureRec(AlexKiddPunyR, frameRecPunyR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         //DrawTextureEx(AlexKiddWalkR, Vector2{ player.position.x - 30, player.position.y - 76}, 0, 2.0f, WHITE);   //Textura Alex Kidd
         
         
