@@ -24,7 +24,8 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 Texture2D background;
 Texture2D nuvol;
-Texture2D AlexKidd;                                 
+Texture2D AlexKiddIdleR;  
+Texture2D AlexKiddIdleL;
 Texture2D AlexKiddWalkR;
 Texture2D AlexKiddWalkL;
 Texture2D AlexKiddJumpR;
@@ -78,7 +79,8 @@ int main(void)
 
     background = LoadTexture("resources/Alex-Kidd-assets.png");
     nuvol = LoadTexture("resources/nuvol.png");
-    AlexKidd = LoadTexture("resources/AlexKidd.png");
+    AlexKiddIdleR = LoadTexture("resources/AlexKiddIdleR.png");
+    AlexKiddIdleL = LoadTexture("resources/AlexKiddIdleL.png");
     AlexKiddWalkR = LoadTexture("resources/AlexKiddWalkR.png");
     AlexKiddWalkL = LoadTexture("resources/AlexKiddWalkL.png");
     AlexKiddJumpR = LoadTexture("resources/AlexKiddJumpR.png");
@@ -97,6 +99,10 @@ int main(void)
     int framesSpeed = 8;
 
     int LeftOrRight = NULL;
+    int var = 0;
+    
+    
+    int FramesPuny = 0;
 
     Player player = { 0 };
     player.position = Vector2{ 600, 200 };
@@ -173,6 +179,9 @@ int main(void)
             }
 
         }
+       
+
+      
         // Update
         //----------------------------------------------------------------------------------
         float deltaTime = GetFrameTime();
@@ -207,12 +216,20 @@ int main(void)
         if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
         else if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) LeftOrRight = 1;
 
-        if (!IsKeyDown(KEY_D)&& !IsKeyDown(KEY_A)&& player.canJump&& !IsKeyPressed(KEY_ENTER)) DrawTextureRec(AlexKidd, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 0 && var==0 || var >= 80) DrawTextureRec(AlexKiddIdleR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 1) DrawTextureRec(AlexKiddIdleL, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
         else if (IsKeyDown(KEY_D)&& player.canJump)DrawTextureRec(AlexKiddWalkR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         else if (IsKeyDown(KEY_A)&& player.canJump)DrawTextureRec(AlexKiddWalkL, frameRecL, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         else if (LeftOrRight == 0 && !player.canJump)DrawTextureRec(AlexKiddJumpR, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         else if (LeftOrRight == 1 && !player.canJump)DrawTextureRec(AlexKiddJumpL, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
-        else if (IsKeyPressed(KEY_ENTER))DrawTextureRec(AlexKiddPunyR, frameRecPunyR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+        else if (IsKeyPressed(KEY_ENTER) && player.canJump) {
+            var = 0;
+            while (var <= 80) {
+                DrawTextureRec(AlexKiddPunyR, frameRecPunyR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
+                var += framesSpeed;
+            }
+        }
+    
         //DrawTextureEx(AlexKiddWalkR, Vector2{ player.position.x - 30, player.position.y - 76}, 0, 2.0f, WHITE);   //Textura Alex Kidd
         
         
