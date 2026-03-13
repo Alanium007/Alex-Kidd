@@ -79,6 +79,8 @@ int main(void)
 
     background = LoadTexture("resources/Alex-Kidd-assets.png");
     nuvol = LoadTexture("resources/nuvol.png");
+    
+    
     AlexKiddIdleR = LoadTexture("resources/AlexKiddIdleR.png");
     AlexKiddIdleL = LoadTexture("resources/AlexKiddIdleL.png");
     AlexKiddWalkR = LoadTexture("resources/AlexKiddWalkR.png");
@@ -93,6 +95,7 @@ int main(void)
     Rectangle frameRecJump = { 0.0f, 0.0f, ((float)AlexKiddJumpR.width), ((float)AlexKiddJumpR.height) };
     Rectangle frameRecPunyR = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
 
+
     int currentFrame = 0;
 
     int framesCounter = 0;
@@ -100,6 +103,9 @@ int main(void)
 
     int LeftOrRight = NULL;
     int var = 0;
+
+    bool attacking = false;
+    int attackTimer = 0;
     
     
     int FramesPuny = 0;
@@ -132,6 +138,7 @@ int main(void)
         UpdateCameraPlayerBoundsPush
     };
 
+    
     int cameraOption = 4;
 
 
@@ -142,6 +149,7 @@ int main(void)
     // Main game loop
 
     static float x = 400, y = 400;
+    
     while (!WindowShouldClose())
     {   
         
@@ -151,6 +159,16 @@ int main(void)
 
         framesCounter++;
 
+       
+        if (attacking)
+        {
+            attackTimer--;
+
+            if (attackTimer <= 0)
+            {
+                attacking = false;
+            }
+        }
         
         if (IsKeyDown(KEY_D)) {
    
@@ -215,20 +233,21 @@ int main(void)
         
         if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
         else if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) LeftOrRight = 1;
-
-        if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 0 && var==0 || var >= 80) DrawTextureRec(AlexKiddIdleR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
-        if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 1) DrawTextureRec(AlexKiddIdleL, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        
+        if (attacking && LeftOrRight == 0)DrawTextureRec(AlexKiddPunyR, frameRecPunyR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        else if (attacking && LeftOrRight == 1)DrawTextureRec(AlexKiddPunyL, frameRecPunyR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        else if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 0 && var==0 || var >= 80) DrawTextureRec(AlexKiddIdleR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        else if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 1) DrawTextureRec(AlexKiddIdleL, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
         else if (IsKeyDown(KEY_D)&& player.canJump)DrawTextureRec(AlexKiddWalkR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         else if (IsKeyDown(KEY_A)&& player.canJump)DrawTextureRec(AlexKiddWalkL, frameRecL, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         else if (LeftOrRight == 0 && !player.canJump)DrawTextureRec(AlexKiddJumpR, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
         else if (LeftOrRight == 1 && !player.canJump)DrawTextureRec(AlexKiddJumpL, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
-        else if (IsKeyPressed(KEY_ENTER) && player.canJump) {
-            var = 0;
-            while (var <= 80) {
-                DrawTextureRec(AlexKiddPunyR, frameRecPunyR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
-                var += framesSpeed;
-            }
+        if (IsKeyPressed(KEY_ENTER) && !attacking)
+        {
+            attacking = true;
+            attackTimer = 20; // duración del golpe (frames)
         }
+        
     
         //DrawTextureEx(AlexKiddWalkR, Vector2{ player.position.x - 30, player.position.y - 76}, 0, 2.0f, WHITE);   //Textura Alex Kidd
         
