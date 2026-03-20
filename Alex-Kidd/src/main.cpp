@@ -37,6 +37,9 @@ Texture2D AlexKiddCrouchL;
 Texture2D MonsterBirdR;
 Texture2D MonsterBirdL;
 
+Texture2D blockSolid;
+Texture2D blockBreak;
+
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -48,11 +51,24 @@ typedef struct Player {
 
 } Player;
 
+//typedef struct EnvItem {
+//    Rectangle rect;
+//    int blocking;
+//    Color color;
+//    Texture2D nuvol;
+//} EnvItem;
+
+typedef enum {
+    BLOCK_SOLID,
+    BLOCK_BREAKABLE
+} BlockType;
+
 typedef struct EnvItem {
     Rectangle rect;
     int blocking;
-    Color color;
-    Texture2D nuvol;
+    Texture2D texture;   // en lloc de Color
+    BlockType type;
+    bool active;
 } EnvItem;
 
 typedef struct enemic {
@@ -106,6 +122,10 @@ int main(void)
     MonsterBirdR = LoadTexture("resources/MonsterBirdR.png");
     MonsterBirdL = LoadTexture("resources/MonsterBirdL.png");
 
+    blockSolid = LoadTexture("resources/BlocSolid.png");
+    blockBreak = LoadTexture("resources/BlocBreakable.png");
+
+
     Rectangle frameRecR = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
     Rectangle frameRecL = { 0.0f, 0.0f, ((float)AlexKiddWalkL.width / 4), ((float)AlexKiddWalkL.height) };
     Rectangle frameRecJump = { 0.0f, 0.0f, ((float)AlexKiddJumpR.width), ((float)AlexKiddJumpR.height) };
@@ -114,9 +134,12 @@ int main(void)
     Rectangle framePterodactil = { 0.0f, 0.0f, ((float)MonsterBirdR.width / 2), ((float)MonsterBirdR.height) };
 
 
-    int currentFrame = 0;
+    int playerFrame = 0;
+    int playerCounter = 0;
 
-    int framesCounter = 0;
+    int pteroFrame = 0;
+    int pteroCounter = 0;
+
     int framesSpeed = 8;
 
     int LeftOrRight = NULL;
@@ -139,12 +162,25 @@ int main(void)
     pterodactil.siToca = false;
     pterodactil.vida = true;
     
-    EnvItem envItems[] = {
+    /*EnvItem envItems[] = {
         {{ 0, 400, 1000, 200 }, 1, BLACK },
         {{ 300, 200, 400, 10 }, 1, GRAY },
         {{ 250, 300, 100, 10 }, 1, GRAY },
         {{ 650, 300, 100, 10 }, 1, GRAY }
-    };
+    };*/
+
+    EnvItem envItems[] = {
+    {{ 0, 400, 1000, 200 }, 1, blockSolid, BLOCK_SOLID, true},
+    {{ 300, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
+    {{ 450, 100, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
+    {{ 250, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
+    {{ 330, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
+    {{ 410, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 490, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 330, 380, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 410, 380, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 490, 380, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+};
 
     int envItemsLength = sizeof(envItems) / sizeof(envItems[0]);
 
@@ -182,7 +218,7 @@ int main(void)
             ToggleFullscreen();
         }
 
-        framesCounter++;
+        
 
         // Animacions---------------------------------------------------------------------------------------------------------------
         if (attacking)
@@ -194,44 +230,46 @@ int main(void)
                 attacking = false;
             }
         }
+        
+        playerCounter++;
 
         if (IsKeyDown(KEY_D)) {
 
 
-            if (framesCounter >= (60 / framesSpeed))
+            if (playerCounter >= (60 / framesSpeed))
             {
-                framesCounter = 0;
-                currentFrame++;
+                playerCounter = 0;
+                playerFrame++;
 
-                if (currentFrame > 3) currentFrame = 0;
+                if (playerFrame > 3) playerFrame = 0;
 
-                frameRecR.x = (float)currentFrame * (float)AlexKiddWalkR.width / 4;
+                frameRecR.x = (float)playerFrame * (float)AlexKiddWalkR.width / 4;
             }
 
         }
         if (IsKeyDown(KEY_A)) {
 
-            if (framesCounter >= (60 / framesSpeed))
+            if (playerCounter >= (60 / framesSpeed))
             {
-                framesCounter = 0;
-                currentFrame++;
+                playerCounter = 0;
+                playerFrame++;
 
-                if (currentFrame > 3) currentFrame = 0;
+                if (playerFrame > 3) playerFrame = 0;
 
-                frameRecL.x = (float)currentFrame * (float)AlexKiddWalkR.width / 4;
+                frameRecL.x = (float)playerFrame * (float)AlexKiddWalkR.width / 4;
             }
 
         }
 
 
-        if (framesCounter >= (150 / framesSpeed))
-        {
-            framesCounter = 0;
-            currentFrame++;
+        pteroCounter++;
 
-            if (currentFrame > 3) currentFrame = 0;
+        if (pteroCounter >= (150 / framesSpeed)) {
+            pteroCounter = 0;
+            pteroFrame++;
+            if (pteroFrame > 1) pteroFrame = 0;
 
-            framePterodactil.x = (float)currentFrame * (float)MonsterBirdR.width / 2;
+            framePterodactil.x = (float)pteroFrame * (float)MonsterBirdR.width / 2;
         }
 
         // Update
@@ -258,8 +296,14 @@ int main(void)
 
         BeginMode2D(camera);
 
-        for (int i = 0; i < envItemsLength; i++) DrawRectangleRec(envItems[i].rect, envItems[i].color);
-
+        for (int i = 0; i < envItemsLength; i++) DrawTexturePro(
+            envItems[i].texture,
+            Rectangle{ 0, 0, (float)envItems[i].texture.width, (float)envItems[i].texture.height },
+            envItems[i].rect,
+            Vector2{ 0, 0 },
+            0.0f,
+            WHITE
+        );
 
         /*Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 35.0f, 40.0f };
         DrawRectangleRec(playerRect, WHITE);*/
@@ -268,8 +312,8 @@ int main(void)
         if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
         else if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) LeftOrRight = 1;
 
-        if (attacking && LeftOrRight == 0)DrawTextureRec(AlexKiddPunyR, frameRecPuny, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
-        else if (attacking && LeftOrRight == 1)DrawTextureRec(AlexKiddPunyL, frameRecPuny, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
+        if (attacking && LeftOrRight == 0)DrawTextureRec(AlexKiddPunyR, frameRecPuny, Vector2{ player.position.x - 35, player.position.y - 129 }, WHITE);
+        else if (attacking && LeftOrRight == 1)DrawTextureRec(AlexKiddPunyL, frameRecPuny, Vector2{ player.position.x - 75, player.position.y - 129 }, WHITE);
         else if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 0 && !IsKeyDown(KEY_S)) DrawTextureRec(AlexKiddIdleR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
         else if (!IsKeyDown(KEY_D) && !IsKeyDown(KEY_A) && player.canJump && !IsKeyPressed(KEY_ENTER) && LeftOrRight == 1 && !IsKeyDown(KEY_S)) DrawTextureRec(AlexKiddIdleL, frameRecR, Vector2{ player.position.x - 40, player.position.y - 128 }, WHITE);
         else if (IsKeyDown(KEY_D) && player.canJump && !IsKeyDown(KEY_S)) DrawTextureRec(AlexKiddWalkR, frameRecR, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
