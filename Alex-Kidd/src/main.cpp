@@ -90,6 +90,7 @@ void UpdateCameraCenterSmoothFollow(Camera2D* camera, Player* player, EnvItem* e
 void UpdateCameraEvenOutOnLanding(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void PterodactilMoviment(enemic* pterodactil, EnvItem* envItems, int envItemsLength, float delta);
+void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight);
 
 //------------------------------------------------------------------------------------
 // MAIN
@@ -296,14 +297,19 @@ int main(void)
 
         BeginMode2D(camera);
 
-        for (int i = 0; i < envItemsLength; i++) DrawTexturePro(
-            envItems[i].texture,
-            Rectangle{ 0, 0, (float)envItems[i].texture.width, (float)envItems[i].texture.height },
-            envItems[i].rect,
-            Vector2{ 0, 0 },
-            0.0f,
-            WHITE
-        );
+        for (int i = 0; i < envItemsLength; i++)
+        {
+            if (!envItems[i].active) continue; // ignorar bloques desactivados
+
+            DrawTexturePro(
+                envItems[i].texture,
+                Rectangle{ 0, 0, (float)envItems[i].texture.width, (float)envItems[i].texture.height },
+                envItems[i].rect,
+                Vector2{ 0, 0 },
+                0.0f,
+                WHITE
+            );
+        }
 
         /*Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 35.0f, 40.0f };
         DrawRectangleRec(playerRect, WHITE);*/
@@ -326,6 +332,9 @@ int main(void)
         {
             attacking = true;
             attackTimer = 20; // duración del golpe (frames)
+
+            // Romper bloques solo en la dirección que mira
+            PlayerBreakBlock(&player, envItems, envItemsLength, LeftOrRight);
         }
 
         if (pterodactil.velocitat > 0) DrawTextureRec(MonsterBirdR, framePterodactil, Vector2{ pterodactil.posicio.x, pterodactil.posicio.y }, WHITE);
@@ -356,46 +365,178 @@ int main(void)
     return 0;
 }
 
+//void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float delta)
+//{
+//    if (IsKeyDown(KEY_A) && !IsKeyDown(KEY_S)) player->position.x -= PLAYER_HOR_SPD * delta;
+//    if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S)) player->position.x += PLAYER_HOR_SPD * delta;
+//    if (IsKeyDown(KEY_SPACE) && player->canJump && !IsKeyDown(KEY_S))
+//    {
+//        player->speed = -PLAYER_JUMP_SPD;
+//        player->canJump = false;
+//    }
+//
+//    bool hitObstacle = false;
+//    for (int i = 0; i < envItemsLength; i++)
+//    {
+//        EnvItem* ei = envItems + i;
+//        Vector2* p = &(player->position);
+//        if (ei->blocking &&
+//            ei->rect.x <= p->x &&
+//            ei->rect.x + ei->rect.width >= p->x &&
+//            ei->rect.y >= p->y &&
+//            ei->rect.y <= p->y + player->speed * delta)
+//        {
+//            hitObstacle = true;
+//            player->speed = 0.0f;
+//            p->y = ei->rect.y;
+//            break;
+//        }
+//    }
+//
+//    if (!hitObstacle)
+//    {
+//        player->position.y += player->speed * delta;
+//        player->speed += G * delta;
+//        player->canJump = false;
+//    }
+//    else player->canJump = true;
+//}
 void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float delta)
 {
-    if (IsKeyDown(KEY_A) && !IsKeyDown(KEY_S)) player->position.x -= PLAYER_HOR_SPD * delta;
-    if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S)) player->position.x += PLAYER_HOR_SPD * delta;
-    if (IsKeyDown(KEY_SPACE) && player->canJump && !IsKeyDown(KEY_S))
+    // ---------------------------
+    // HITBOX DEL JUGADOR
+    // ---------------------------
+    Rectangle playerRect = {
+        player->position.x - 20,
+        player->position.y - 80,
+        40,
+        80
+    };
+
+    // ---------------------------
+    // INPUT SALTO
+    // ---------------------------
+    if (IsKeyPressed(KEY_SPACE) && player->canJump && !IsKeyDown(KEY_S))
     {
         player->speed = -PLAYER_JUMP_SPD;
         player->canJump = false;
     }
 
-    bool hitObstacle = false;
+    // ---------------------------
+    // MOVIMIENTO HORIZONTAL
+    // ---------------------------
+    float moveX = 0;
+    if (IsKeyDown(KEY_A) && !IsKeyDown(KEY_S)) moveX = -PLAYER_HOR_SPD * delta;
+    if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S)) moveX = PLAYER_HOR_SPD * delta;
+
+    playerRect.x += moveX;
+
     for (int i = 0; i < envItemsLength; i++)
     {
-        EnvItem* ei = envItems + i;
-        Vector2* p = &(player->position);
-        if (ei->blocking &&
-            ei->rect.x <= p->x &&
-            ei->rect.x + ei->rect.width >= p->x &&
-            ei->rect.y >= p->y &&
-            ei->rect.y <= p->y + player->speed * delta)
+        EnvItem* ei = &envItems[i];
+
+        if (ei->blocking && ei->active)
         {
-            hitObstacle = true;
-            player->speed = 0.0f;
-            p->y = ei->rect.y;
-            break;
+            if (CheckCollisionRecs(playerRect, ei->rect))
+            {
+                if (moveX > 0) // derecha
+                    playerRect.x = ei->rect.x - playerRect.width;
+                else if (moveX < 0) // izquierda
+                    playerRect.x = ei->rect.x + ei->rect.width;
+            }
         }
     }
 
-    if (!hitObstacle)
+    // ---------------------------
+    // GRAVEDAD
+    // ---------------------------
+    player->speed += G * delta;
+    float moveY = player->speed * delta;
+
+    // ---------------------------
+    // TUNNELING FIX: mover en pasos pequeños
+    // ---------------------------
+    int steps = (int)fabs(moveY / 5.0f) + 1;
+    float stepSize = moveY / steps;
+    player->canJump = false;
+
+    for (int s = 0; s < steps; s++)
     {
-        player->position.y += player->speed * delta;
-        player->speed += G * delta;
-        player->canJump = false;
+        playerRect.y += stepSize;
+
+        for (int i = 0; i < envItemsLength; i++)
+        {
+            EnvItem* ei = &envItems[i];
+
+            if (ei->blocking && ei->active)
+            {
+                if (CheckCollisionRecs(playerRect, ei->rect))
+                {
+                    if (stepSize > 0) // cayendo (suelo)
+                    {
+                        playerRect.y = ei->rect.y - playerRect.height;
+                        player->speed = 0;
+                        player->canJump = true;
+                    }
+                    if (stepSize < 0) // subiendo (techo)
+                    {
+                        playerRect.y = ei->rect.y + ei->rect.height;
+                        player->speed = 0;
+
+                        // No romper bloques al saltar
+                        // if (ei->type == BLOCK_BREAKABLE) ei->active = false; // eliminar
+                    }
+
+                    // salir del bucle de pasos si colisionamos
+                    s = steps;
+                    break;
+                }
+            }
+        }
     }
-    else player->canJump = true;
+
+    // ---------------------------
+    // ACTUALIZAR POSICIÓN FINAL
+    // ---------------------------
+    player->position.x = playerRect.x + playerRect.width / 2;
+    player->position.y = playerRect.y + playerRect.height;
+}
+void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight)
+{
+    // Rectángulo de acción delante del jugador
+    float width = 50;
+    float height = 40;
+    float offsetX = (LeftOrRight == 0) ? 20 : -width; // derecha o izquierda
+    float offsetY = -60; // altura del puño desde la base del jugador
+
+    Rectangle actionRect = {
+        player->position.x + offsetX,
+        player->position.y + offsetY,
+        width,
+        height
+    };
+
+    for (int i = 0; i < envItemsLength; i++)
+    {
+        EnvItem* ei = &envItems[i];
+
+        if (ei->active && ei->type == BLOCK_BREAKABLE)
+        {
+            if (CheckCollisionRecs(actionRect, ei->rect))
+            {
+                // Desactivar bloque
+                ei->active = false;
+            }
+        }
+    }
 }
 
-void PterodactilMoviment(enemic* pterodactil, EnvItem* envItems, int envItemsLength, float delta) {
+void PterodactilMoviment(enemic* pterodactil, EnvItem* envItems, int envItemsLength, float delta)
+{
+    // Mover horizontalmente según velocidad
     pterodactil->posicio.x += pterodactil->velocitat;
 
+    // Cambiar dirección al llegar a los límites fijos
     if (pterodactil->posicio.x > 900) {
         pterodactil->velocitat = -5;   // cambia dirección a la izquierda
     }
@@ -403,10 +544,9 @@ void PterodactilMoviment(enemic* pterodactil, EnvItem* envItems, int envItemsLen
     if (pterodactil->posicio.x < 300) {
         pterodactil->velocitat = 5;    // cambia dirección a la derecha
     }
-    
+
+    // NOTA: en esta versión original no hay movimiento vertical ni colisiones con bloques
 }
-
-
 
 
 
@@ -517,4 +657,7 @@ void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* env
     if (player->position.x > bboxWorldMax.x) camera->target.x = bboxWorldMin.x + (player->position.x - bboxWorldMax.x);
     if (player->position.y > bboxWorldMax.y) camera->target.y = bboxWorldMin.y + (player->position.y - bboxWorldMax.y);
 }
+
+
+
 
