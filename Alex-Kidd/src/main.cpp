@@ -198,6 +198,9 @@ int main(void)
     {{ 330, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
     {{ 410, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
     {{ 490, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 330, 420, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 410, 420, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 490, 420, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true }
 };
 
     int envItemsLength = sizeof(envItems) / sizeof(envItems[0]);
@@ -238,10 +241,7 @@ int main(void)
         }
         
         int cameraOption = 5; // ahora es la cámara “solo baja”
-
-        /*cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);*/
         
-
         // Animacions---------------------------------------------------------------------------------------------------------------
         if (attacking)
         {
@@ -331,6 +331,7 @@ int main(void)
         
 
         BeginMode2D(camera);
+        
         DrawTextureEx(nuvol, Vector2{ 100, 100 }, 0, 0.2f, WHITE);
         DrawTextureEx(nuvol, Vector2{ 900, 300 }, 0, 0.2f, WHITE);
 
