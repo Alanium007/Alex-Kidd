@@ -96,6 +96,7 @@ void UpdateCameraCenterInsideMap(Camera2D* camera, Player* player, EnvItem* envI
 void UpdateCameraCenterSmoothFollow(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraEvenOutOnLanding(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void PterodactilMoviment(enemic* pterodactil, EnvItem* envItems, int envItemsLength, float delta);
 void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight);
 void PlayerHitEnemy(Player* player, enemic* pterodactil, int LeftOrRight);
@@ -135,6 +136,7 @@ int main(void)
 
     blockSolid = LoadTexture("resources/BlocSolid.png");
     blockBreak = LoadTexture("resources/BlocBreakable.png");
+    
 
 
     Rectangle frameRecR = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
@@ -162,6 +164,8 @@ int main(void)
     
     int FramesPuny = 0;
 
+    
+
     Player player = { 0 };
     player.position = Vector2{ 600, 200 };
     player.speed = 0;
@@ -187,13 +191,13 @@ int main(void)
     {{ 450, 100, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
     {{ 1000, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
     {{ -200, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
-    {{ 250, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
-    {{ 330, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
-    {{ 410, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 490, 300, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 330, 380, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 410, 380, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 490, 380, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 250, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
+    {{ 330, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
+    {{ 410, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 490, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 330, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 410, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
+    {{ 490, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
 };
 
     int envItemsLength = sizeof(envItems) / sizeof(envItems[0]);
@@ -210,7 +214,8 @@ int main(void)
         UpdateCameraCenterInsideMap,
         UpdateCameraCenterSmoothFollow,
         UpdateCameraEvenOutOnLanding,
-        UpdateCameraPlayerBoundsPush
+        UpdateCameraPlayerBoundsPush,
+        UpdateCameraDownOnly
     };
 
     
@@ -231,7 +236,10 @@ int main(void)
         if (IsKeyPressed(KEY_F11)) {
             ToggleFullscreen();
         }
+        
+        int cameraOption = 5; // ahora es la cámara “solo baja”
 
+        /*cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);*/
         
 
         // Animacions---------------------------------------------------------------------------------------------------------------
@@ -313,14 +321,18 @@ int main(void)
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
+        
+
 
         ClearBackground(BLAU);
+        
 
-        DrawTextureEx(nuvol, Vector2{ 100, 100 }, 0, 0.2f, WHITE);
 
-        DrawTextureEx(nuvol, Vector2{ 900, 1000 }, 0, 0.2f, WHITE);
+        
 
         BeginMode2D(camera);
+        DrawTextureEx(nuvol, Vector2{ 100, 100 }, 0, 0.2f, WHITE);
+        DrawTextureEx(nuvol, Vector2{ 900, 300 }, 0, 0.2f, WHITE);
 
         for (int i = 0; i < envItemsLength; i++)
         {
@@ -794,6 +806,19 @@ void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* env
     if (player->position.y < bboxWorldMin.y) camera->target.y = player->position.y;
     if (player->position.x > bboxWorldMax.x) camera->target.x = bboxWorldMin.x + (player->position.x - bboxWorldMax.x);
     if (player->position.y > bboxWorldMax.y) camera->target.y = bboxWorldMin.y + (player->position.y - bboxWorldMax.y);
+}
+void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height)
+{
+    static float lowestY = 0;
+    camera->offset = Vector2{ width / 2.0f, height / 2.0f };
+
+    if (lowestY == 0) lowestY = player->position.y;
+
+    if (player->position.y > lowestY)
+        lowestY = player->position.y;
+
+    camera->target.x = player->position.x;
+    camera->target.y = lowestY;
 }
 
 
