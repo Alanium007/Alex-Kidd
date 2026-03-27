@@ -14,7 +14,9 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #define G 2000
 #define PLAYER_JUMP_SPD 1000.0f
-#define PLAYER_HOR_SPD 500.0f
+#define PLAYER_ACC 1000.0f     // aceleración
+#define PLAYER_FRICTION 400.0f // frenado suave
+#define PLAYER_MAX_SPEED 400.0f
 #define JUMP_HOLD_FORCE 1200.0f   // fuerza extra mientras mantienes salto
 #define MAX_JUMP_TIME 0.2f        // tiempo máximo que afecta (segundos)
 
@@ -48,7 +50,8 @@ Texture2D blockBreak;
 //----------------------------------------------------------------------------------
 typedef struct Player {
     Vector2 position;
-    float speed;
+    float speedY;
+    float velX;
     bool canJump;
 
     bool alive;          // 👈 nuevo
@@ -168,7 +171,8 @@ int main(void)
 
     Player player = { 0 };
     player.position = Vector2{ 600, 200 };
-    player.speed = 0;
+    player.speedY = 0;
+    player.velX = 0;
     player.canJump = false;
     player.isJumping = false;
     player.jumpTime = 0;
@@ -308,7 +312,7 @@ int main(void)
             {
                 player.alive = true;
                 player.position = player.spawn;
-                player.speed = 0;
+                player.speedY = 0;
             }
         }
 
@@ -432,15 +436,15 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     // ---------------------------
     if (IsKeyPressed(KEY_SPACE) && player->canJump && !IsKeyDown(KEY_S))
     {
-        player->speed = -PLAYER_JUMP_SPD;
+        player->speedY = -PLAYER_JUMP_SPD;
         player->canJump = false;
 
         player->isJumping = true;
         player->jumpTime = 0;
     }
-    if (IsKeyReleased(KEY_SPACE) && player->speed < 0)
+    if (IsKeyReleased(KEY_SPACE) && player->speedY < 0)
     {
-        player->speed *= 0.4f; // 👈 corta la subida
+        player->speedY *= 0.4f; // 👈 corta la subida
     }
     if (IsKeyDown(KEY_SPACE) && player->isJumping)
     {
@@ -448,7 +452,7 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
 
         if (player->jumpTime < MAX_JUMP_TIME)
         {
-            player->speed -= JUMP_HOLD_FORCE * delta;
+            player->speedY -= JUMP_HOLD_FORCE * delta;
         }
     }
     if (IsKeyReleased(KEY_SPACE))
@@ -459,10 +463,73 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     // ---------------------------
     // MOVIMIENTO HORIZONTAL
     // ---------------------------
-    float moveX = 0;
-    if (IsKeyDown(KEY_A) && !IsKeyDown(KEY_S)) moveX = -PLAYER_HOR_SPD * delta;
-    if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S)) moveX = PLAYER_HOR_SPD * delta;
+    if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S))
+{
+    player->velX += PLAYER_ACC * delta;
+}
+else if (IsKeyDown(KEY_A) && !IsKeyDown(KEY_S))
+{
+    player->velX -= PLAYER_ACC * delta;
+}
+else
+{
+    // fricción (desaceleración suave)
+    if (player->velX > 0)
+    {
+        player->velX -= PLAYER_FRICTION * delta;
+        if (player->velX < 0) player->velX = 0;
+    }
+    else if (player->velX < 0)
+    {
+        player->velX += PLAYER_FRICTION * delta;
+        if (player->velX > 0) player->velX = 0;
+    }
+}
 
+    // ---------------------------
+    // MOVIMIENTO HORIZONTAL PRO++
+    // ---------------------------
+
+    float acc = PLAYER_ACC;
+    float friction = PLAYER_FRICTION;
+
+    // INPUT
+    if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S))
+    {
+        // si ibas hacia la izquierda, frena primero (turnaround)
+        if (player->velX < 0)
+            player->velX += friction * delta;
+        else
+            player->velX += acc * delta;
+    }
+    else if (IsKeyDown(KEY_A) && !IsKeyDown(KEY_S))
+    {
+        if (player->velX > 0)
+            player->velX -= friction * delta;
+        else
+            player->velX -= acc * delta;
+    }
+    else
+    {
+        // SIN INPUT → deslizar
+        if (player->velX > 0)
+        {
+            player->velX -= friction * delta;
+            if (player->velX < 0) player->velX = 0;
+        }
+        else if (player->velX < 0)
+        {
+            player->velX += friction * delta;
+            if (player->velX > 0) player->velX = 0;
+        }
+    }
+
+    // clamp velocidad
+    if (player->velX > PLAYER_MAX_SPEED) player->velX = PLAYER_MAX_SPEED;
+    if (player->velX < -PLAYER_MAX_SPEED) player->velX = -PLAYER_MAX_SPEED;
+
+    // aplicar
+    float moveX = player->velX * delta;
     playerRect.x += moveX;
 
     for (int i = 0; i < envItemsLength; i++)
@@ -484,8 +551,8 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     // ---------------------------
     // GRAVEDAD
     // ---------------------------
-    player->speed += G * delta;
-    float moveY = player->speed * delta;
+    player->speedY += G * delta;
+    float moveY = player->speedY * delta;
 
     // ---------------------------
     // TUNNELING FIX: mover en pasos pequeños
@@ -509,14 +576,14 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
                     if (stepSize > 0) // cayendo (suelo)
                     {
                         playerRect.y = ei->rect.y - playerRect.height;
-                        player->speed = 0;
+                        player->speedY = 0;
                         player->canJump = true;
                         player->isJumping = false;
                     }
                     if (stepSize < 0) // subiendo (techo)
                     {
                         playerRect.y = ei->rect.y + ei->rect.height;
-                        player->speed = 0;
+                        player->speedY = 0;
 
                         // No romper bloques al saltar
                         // if (ei->type == BLOCK_BREAKABLE) ei->active = false; // eliminar
@@ -787,7 +854,7 @@ void UpdateCameraEvenOutOnLanding(Camera2D* camera, Player* player, EnvItem* env
     }
     else
     {
-        if (player->canJump && (player->speed == 0) && (player->position.y != camera->target.y))
+        if (player->canJump && (player->speedY == 0) && (player->position.y != camera->target.y))
         {
             eveningOut = 1;
             evenOutTarget = player->position.y;
