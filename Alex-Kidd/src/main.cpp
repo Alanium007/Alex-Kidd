@@ -15,7 +15,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define G 2000
 #define PLAYER_JUMP_SPD 1000.0f
 #define PLAYER_ACC 1000.0f     // aceleración
-#define PLAYER_FRICTION 400.0f // frenado suave
+#define PLAYER_FRICTION 600.0f // frenado suave
 #define PLAYER_MAX_SPEED 400.0f
 #define JUMP_HOLD_FORCE 1200.0f   // fuerza extra mientras mantienes salto
 #define MAX_JUMP_TIME 0.2f        // tiempo máximo que afecta (segundos)
@@ -43,6 +43,16 @@ Texture2D MonsterBirdL;
 
 Texture2D blockSolid;
 Texture2D blockBreak;
+
+//Texture2D blockBreak;
+//Texture2D blockBreak;
+//Texture2D blockBreak;
+//Texture2D blockBreak;
+//Texture2D blockBreak;
+
+Texture2D negro;
+
+
 
 
 //----------------------------------------------------------------------------------
@@ -139,6 +149,8 @@ int main(void)
 
     blockSolid = LoadTexture("resources/BlocSolid.png");
     blockBreak = LoadTexture("resources/BlocBreakable.png");
+
+    negro = LoadTexture("resources/Negro.png");
     
 
 
@@ -183,7 +195,7 @@ int main(void)
     pterodactil.siToca = false;
     pterodactil.vida = true;
     
-    player.position = Vector2{ 600, 200 };
+    player.position = Vector2{ 200, 200 };
     player.spawn = player.position;   // 👈 guardar spawn
     player.alive = true;
     player.respawnTimer = 0;
@@ -191,10 +203,12 @@ int main(void)
 
     EnvItem envItems[] = {
     {{ 0, 400, 1000, 200 }, 1, blockSolid, BLOCK_SOLID, true},
+    {{ -400, -400, 300, 20000 }, 1, negro, BLOCK_SOLID, true },
+    {{ 1255, -400, 300, 20000 }, 1, negro, BLOCK_SOLID, true },
     {{ 600, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
     {{ 450, 100, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
     {{ 1000, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
-    {{ -200, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
+    
     {{ 250, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
     {{ 330, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
     {{ 410, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
@@ -336,8 +350,9 @@ int main(void)
 
         BeginMode2D(camera);
         
-        DrawTextureEx(nuvol, Vector2{ 100, 100 }, 0, 0.2f, WHITE);
-        DrawTextureEx(nuvol, Vector2{ 900, 300 }, 0, 0.2f, WHITE);
+        DrawTextureEx(nuvol, Vector2{ 200, -100 }, 0, 0.2f, WHITE);
+        DrawTextureEx(nuvol, Vector2{ 700, 150 }, 0, 0.2f, WHITE);
+        DrawTextureEx(nuvol, Vector2{ 950, 0 }, 0, 0.2f, WHITE);
 
         for (int i = 0; i < envItemsLength; i++)
         {
@@ -878,15 +893,26 @@ void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* env
 void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height)
 {
     static float lowestY = 0;
-    camera->offset = Vector2{ width / 2.0f, height / 2.0f };
+    static float fixedX = 0;
 
-    if (lowestY == 0) lowestY = player->position.y;
+    camera->offset = Vector2{ width / 3.3f, height / 1.5f };
 
-    if (player->position.y > lowestY)
+    // Guardar posición inicial SOLO UNA VEZ
+    if (lowestY == 0)
+    {
         lowestY = player->position.y;
+        fixedX = player->position.x; // 👈 bloqueamos la X aquí
+    }
 
-    camera->target.x = player->position.x;
-    camera->target.y = lowestY;
+    // SOLO baja (nunca sube)
+    if (player->position.y > lowestY)
+    {
+        lowestY = player->position.y;
+    }
+
+    // 👇 IMPORTANTE
+    camera->target.x = fixedX;   // ❌ nunca sigue al jugador en horizontal
+    camera->target.y = lowestY;  // ✅ solo baja
 }
 
 
