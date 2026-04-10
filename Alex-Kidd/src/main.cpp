@@ -20,7 +20,18 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define JUMP_HOLD_FORCE 1200.0f   // fuerza extra mientras mantienes salto
 #define MAX_JUMP_TIME 0.2f        // tiempo máximo que afecta (segundos)
 
+#define TILE_EMPTY 0
+#define TILE_SOLID 1
+#define TILE_BREAK 2
+#define TILE_NEGRO 3   // 👈 NUEVO
+#define TILE_SOLID_HERBA 4   // blockSolidHerba
+#define TILE_HERBA_R     5   // blockHerbaR
+#define TILE_HERBA_L     6   // blockHerbaL
+#define TILE_TERRA_R     8   // blockTerraR
+#define TILE_TERRA_L     7   // blockTerraL
+
 #define BLAU  CLITERAL(Color){8, 9, 250}
+
 
 //----------------------------------------------------------------------------------
 // TEXTURES
@@ -41,8 +52,14 @@ Texture2D AlexKiddCrouchL;
 Texture2D MonsterBirdR;
 Texture2D MonsterBirdL;
 
-Texture2D blockSolid;
+Texture2D blockSolidTerra;
 Texture2D blockBreak;
+Texture2D blockTerraR;
+Texture2D blockTerraL;
+Texture2D blockHerbaR;
+Texture2D blockHerbaL;
+Texture2D blockSolidHerba;
+
 
 //Texture2D blockBreak;
 //Texture2D blockBreak;
@@ -147,8 +164,13 @@ int main(void)
     MonsterBirdR = LoadTexture("resources/MonsterBirdR.png");
     MonsterBirdL = LoadTexture("resources/MonsterBirdL.png");
 
-    blockSolid = LoadTexture("resources/BlocSolid.png");
+    blockSolidTerra = LoadTexture("resources/BlocSolidTerra.png");
     blockBreak = LoadTexture("resources/BlocBreakable.png");
+    blockTerraR = LoadTexture("resources/triangledretaterra.png");
+    blockTerraL = LoadTexture("resources/triangleesquerraterra.png");
+    blockHerbaR = LoadTexture("resources/triangledretaherba.png");
+    blockHerbaL = LoadTexture("resources/triangleesquerraherba.png");
+    blockSolidHerba = LoadTexture("resources/blocherba.png");
 
     negro = LoadTexture("resources/Negro.png");
     
@@ -195,31 +217,155 @@ int main(void)
     pterodactil.siToca = false;
     pterodactil.vida = true;
     
-    player.position = Vector2{ 200, 200 };
+    player.position = Vector2{ 550, 200 };
     player.spawn = player.position;   // 👈 guardar spawn
     player.alive = true;
     player.respawnTimer = 0;
   
 
-    EnvItem envItems[] = {
-    {{ 0, 400, 1000, 200 }, 1, blockSolid, BLOCK_SOLID, true},
-    {{ -400, -400, 300, 20000 }, 1, negro, BLOCK_SOLID, true },
-    {{ 1255, -400, 300, 20000 }, 1, negro, BLOCK_SOLID, true },
-    {{ 600, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
-    {{ 450, 100, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
-    {{ 1000, 200, 80, 80 }, 1, blockBreak, BLOCK_BREAKABLE, true},
-    
-    {{ 250, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
-    {{ 330, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true},
-    {{ 410, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 490, 500, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 330, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 410, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 490, 580, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 330, 420, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 410, 420, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true },
-    {{ 490, 420, 80, 80 }, 1, blockSolid, BLOCK_SOLID, true }
-};
+#define TILE_SIZE 80
+
+    int map[101][24] = {
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,4,4,4,4,4,6,0,0,0,0,0,5,4,4,4,4,3,3,3,3},
+{3,3,3,3,1,1,1,1,7,0,0,0,0,0,0,0,8,1,1,1,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,1,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,1,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,0,0,0,1,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,0,1,0,0,0,1,1,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3}
+    };
+
+    std::vector<EnvItem> envItems;
+
+    // Generar mapa con los nuevos tiles
+    for (int y = 0; y < 101; y++)
+    {
+        for (int x = 0; x < 24; x++)
+        {
+            int tile = map[y][x];
+            if (tile == 0) continue;
+
+            EnvItem item = { 0 };
+            item.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
+            item.blocking = 1;
+            item.active = true;
+
+            if (tile == TILE_SOLID)
+                item.texture = blockSolidTerra;
+            else if (tile == TILE_BREAK)
+                item.texture = blockBreak;
+            else if (tile == TILE_NEGRO)
+                item.texture = negro;
+            else if (tile == TILE_SOLID_HERBA)
+                item.texture = blockSolidHerba;
+            else if (tile == TILE_HERBA_R)
+                item.texture = blockHerbaR;
+            else if (tile == TILE_HERBA_L)
+                item.texture = blockHerbaL;
+            else if (tile == TILE_TERRA_R)
+                item.texture = blockTerraR;
+            else if (tile == TILE_TERRA_L)
+                item.texture = blockTerraL;
+            else
+                item.texture = blockSolidTerra; // fallback
+
+            item.type = BLOCK_SOLID;
+            envItems.push_back(item);
+        }
+    }
 
     int envItemsLength = sizeof(envItems) / sizeof(envItems[0]);
 
@@ -316,7 +462,7 @@ int main(void)
         //----------------------------------------------------------------------------------
         float deltaTime = GetFrameTime();
 
-        UpdatePlayer(&player, envItems, envItemsLength, deltaTime);
+        UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
         if (!player.alive)
         {
@@ -330,10 +476,10 @@ int main(void)
             }
         }
 
-        PterodactilMoviment(&pterodactil, envItems, envItemsLength, deltaTime);
+        PterodactilMoviment(&pterodactil, envItems.data(), envItems.size(), deltaTime);
 
 
-        cameraUpdaters[cameraOption](&camera, &player, envItems, envItemsLength, deltaTime, screenWidth, screenHeight);
+        cameraUpdaters[cameraOption](&camera, &player, envItems.data(), envItems.size(), deltaTime, screenWidth, screenHeight);
         //----------------------------------------------------------------------------------
 
         // Draw
@@ -354,7 +500,7 @@ int main(void)
         DrawTextureEx(nuvol, Vector2{ 700, 150 }, 0, 0.2f, WHITE);
         DrawTextureEx(nuvol, Vector2{ 950, 0 }, 0, 0.2f, WHITE);
 
-        for (int i = 0; i < envItemsLength; i++)
+        for (int i = 0; i < envItems.size(); i++)
         {
             if (!envItems[i].active) continue; // ignorar bloques desactivados
 
@@ -392,7 +538,7 @@ int main(void)
                 attackTimer = 20; // duración del golpe
 
                 // Romper bloques
-                PlayerBreakBlock(&player, envItems, envItemsLength, LeftOrRight);
+                PlayerBreakBlock(&player, envItems.data(), envItems.size(), LeftOrRight);
 
                 // Golpear pterodáctilo
                 PlayerAttackEnemy(&player, &pterodactil, LeftOrRight);
@@ -900,8 +1046,8 @@ void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, i
     // Guardar posición inicial SOLO UNA VEZ
     if (lowestY == 0)
     {
-        lowestY = player->position.y;
-        fixedX = player->position.x; // 👈 bloqueamos la X aquí
+        lowestY = player->position.y+400;
+        fixedX = 582; // 👈 bloqueamos la X aquí
     }
 
     // SOLO baja (nunca sube)
