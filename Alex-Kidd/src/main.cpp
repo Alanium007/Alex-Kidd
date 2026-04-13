@@ -90,6 +90,7 @@ typedef struct Player {
     Vector2 spawn;    // 👈 nuevo
     bool isJumping;
     float jumpTime;
+    int coins;   // 🆕 MONEDAS
 } Player;
 
 //typedef struct EnvItem {
@@ -103,13 +104,22 @@ typedef enum {
     BLOCK_SOLID,
     BLOCK_BREAKABLE
 } BlockType;
+// 🎁 TIPOS DE DROP
+typedef enum {
+    DROP_NONE,
+    DROP_COIN,
+    DROP_STAR
+} DropType;
 
 typedef struct EnvItem {
     Rectangle rect;
     int blocking;
-    Texture2D texture;   // en lloc de Color
+    Texture2D texture;
     BlockType type;
     bool active;
+
+    DropType drop;   // 🎁 NUEVO
+    bool collectible;   // 🆕 NUEVO
 } EnvItem;
 
 typedef struct enemic {
@@ -142,7 +152,7 @@ void PlayerAttackEnemy(Player* player, enemic* ptero, int LeftOrRight);
 //------------------------------------------------------------------------------------
 int main(void)
 {
-   
+    
 
     // INICIALITZACIÓ
     //--------------------------------------------------------------------------------------
@@ -219,12 +229,81 @@ int main(void)
     player.canJump = false;
     player.isJumping = false;
     player.jumpTime = 0;
+    player.coins = 0;
 
-    enemic pterodactil = { 0 };
-    pterodactil.posicio = Vector3{ 600, 1600 };
-    pterodactil.velocitat = 2;
-    pterodactil.siToca = false;
-    pterodactil.vida = true;
+    std::vector<enemic> pterodactilos;
+
+    // 🔹 Crear uno
+    enemic p1 = { 0 };
+    p1.posicio = Vector3{ 600, 1600 };
+    p1.velocitat = 2;
+    p1.vida = true;
+    pterodactilos.push_back(p1);
+
+    // 🔹 Crear otro donde quieras
+    enemic p2 = { 0 };
+    p2.posicio = Vector3{ 900, 2160 };
+    p2.velocitat = 2;
+    p2.vida = true;
+    pterodactilos.push_back(p2);
+
+    // 🔹 Otro más
+    enemic p3 = { 0 };
+    p3.posicio = Vector3{ 600, 2800 };
+    p3.velocitat = 2;
+    p3.vida = true;
+    pterodactilos.push_back(p3);
+
+
+    // 🔹 Otro más
+    enemic p4 = { 0 };
+    p4.posicio = Vector3{ 600, 3040 };
+    p4.velocitat = 2;
+    p4.vida = true;
+    pterodactilos.push_back(p4);
+
+    // 🔹 Otro más
+    enemic p5 = { 0 };
+    p5.posicio = Vector3{ 800, 3780 };
+    p5.velocitat = 2;
+    p5.vida = true;
+    pterodactilos.push_back(p5);
+
+    // 🔹 Otro más
+    enemic p6 = { 0 };
+    p6.posicio = Vector3{ 600, 4100 };
+    p6.velocitat = 2;
+    p6.vida = true;
+    pterodactilos.push_back(p6);
+
+    // 🔹 Otro más
+    enemic p7 = { 0 };
+    p7.posicio = Vector3{ 600, 4480 };
+    p7.velocitat = 2;
+    p7.vida = true;
+    pterodactilos.push_back(p7);
+
+    // 🔹 Otro más
+    enemic p8 = { 0 };
+    p8.posicio = Vector3{ 600, 4960 };
+    p8.velocitat = 2;
+    p8.vida = true;
+    pterodactilos.push_back(p8);
+
+    // 🔹 Otro más
+    enemic p9 = { 0 };
+    p9.posicio = Vector3{ 600, 5760 };
+    p9.velocitat = 2;
+    p9.vida = true;
+    pterodactilos.push_back(p9);
+
+    // 🔹 Otro más
+    enemic p10 = { 0 };
+    p10.posicio = Vector3{ 600, 6320 };
+    p10.velocitat = 2;
+    p10.vida = true;
+    pterodactilos.push_back(p10);
+
     
     player.position = Vector2{ 550, 200 };
     player.spawn = player.position;   // 👈 guardar spawn
@@ -304,31 +383,31 @@ int main(void)
 {3,3,3,3,1,8,0,0,0,0,0,0,0,0,0,0,2,0,0,1,3,3,3,3},
 {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,2,0,2,1,3,3,3,3},
 {3,3,3,3,1,0,0,5,4,4,4,4,4,4,4,4,4,4,4,1,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,3,3,3,3},
-{3,3,3,3,0,1,1,0,0,1,0,0,0,1,1,0,1,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
-{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
-{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,7,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,7,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,4,6,0,0,0,0,0,0,10,7,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,8,0,0,0,0,0,0,0,0,0,0,0,7,1,1,3,3,3,3},
+{3,3,3,3,1,10,0,0,0,0,0,0,0,0,0,0,0,0,7,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,5,4,4,6,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3}, // 9e Pterodactil
+{3,3,3,3,1,0,5,4,4,6,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,10,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,5,6,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,13,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,13,0,0,0,0,0,0,0,0,0,0,0,10,1,3,3,3,3},
+{3,3,3,3,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,5,4,6,0,0,0,0,0,0,0,1,3,3,3,3}, // 10e Pterodactil
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,5,6,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,5,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,5,4,6,0,5,4,6,0,5,4,6,0,5,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,2,13,0,5,6,0,10,0,2,13,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,2,13,0,0,0,0,2,0,2,13,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,2,0,5,4,6,0,10,0,2,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,2,0,0,0,0,0,2,0,2,0,0,1,3,3,3,3}, // 11e Pterodactil
+{3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
@@ -353,36 +432,92 @@ int main(void)
             item.active = true;
 
             if (tile == TILE_SOLID)
+            {
                 item.texture = blockSolidTerra;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_BREAK)
+            {
                 item.texture = blockBreak;
+                item.type = BLOCK_BREAKABLE;
+                item.drop = DROP_COIN; // 💰 SIEMPRE SUELTA MONEDA
+            }
             else if (tile == TILE_NEGRO)
+            {
                 item.texture = negro;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_SOLID_HERBA)
+            {
                 item.texture = blockSolidHerba;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_HERBA_R)
+            {
                 item.texture = blockHerbaR;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_HERBA_L)
+            {
                 item.texture = blockHerbaL;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_TERRA_R)
+            {
                 item.texture = blockTerraR;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_TERRA_L)
+            {
                 item.texture = blockTerraL;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_INTERROGANT)
+            {
                 item.texture = blockInterrogant;
+                item.type = BLOCK_BREAKABLE; // 🔥 IMPORTANTE
+                item.drop = DROP_STAR;       // ⭐ SUELTA ESTRELLA
+            }
             else if (tile == TILE_ESTRELLA)
+            {
                 item.texture = blockEstrella;
+                item.type = BLOCK_BREAKABLE;
+                item.drop = DROP_STAR;
+            }
             else if (tile == TILE_EMOTICONOCALAVERAGROC)
+            {
                 item.texture = blockCalaveraGroc;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_EMOTICONOCALAVERAROSA)
+            {
                 item.texture = blockCalaveraRosa;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             else if (tile == TILE_BOSSACOLLONS)
+            {
                 item.texture = blockBossaCollons;
-            
-            else
-                item.texture = blockSolidTerra; // fallback
+                item.type = BLOCK_SOLID;
 
-            item.type = BLOCK_SOLID;
+                item.blocking = 0;      // 🚫 NO bloquea
+                item.collectible = true; // ✅ recogible
+                item.drop = DROP_NONE;
+            }
+            else
+            {
+                item.texture = blockSolidTerra;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
             envItems.push_back(item);
         }
     }
@@ -496,7 +631,10 @@ int main(void)
             }
         }
 
-        PterodactilMoviment(&pterodactil, envItems.data(), envItems.size(), deltaTime);
+        for (int i = 0; i < pterodactilos.size(); i++)
+        {
+            PterodactilMoviment(&pterodactilos[i], envItems.data(), envItems.size(), deltaTime);
+        }
 
 
         cameraUpdaters[cameraOption](&camera, &player, envItems.data(), envItems.size(), deltaTime, screenWidth, screenHeight);
@@ -504,6 +642,32 @@ int main(void)
 
         // Draw
         //----------------------------------------------------------------------------------
+
+        Rectangle playerRect = {
+    player.position.x - 20,
+    player.position.y - 80,
+    40,
+    80
+        };
+
+        for (int i = 0; i < envItems.size(); i++)
+        {
+            EnvItem* ei = &envItems[i];
+
+            if (!ei->active) continue;
+
+            if (ei->collectible)
+            {
+                if (CheckCollisionRecs(playerRect, ei->rect))
+                {
+                    ei->active = false;
+
+                    player.coins += 100; // 💰 SUMA 100
+
+                    printf("Monedas: %d\n", player.coins);
+                }
+            }
+        }   
         BeginDrawing();
         
 
@@ -511,7 +675,7 @@ int main(void)
         ClearBackground(BLAU);
         
 
-
+        
         
 
         BeginMode2D(camera);
@@ -534,7 +698,10 @@ int main(void)
             );
         }
 
-        EnemyHitPlayer(&player, &pterodactil);
+        for (int i = 0; i < pterodactilos.size(); i++)
+        {
+            EnemyHitPlayer(&player, &pterodactilos[i]);
+        }
         /*Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 35.0f, 40.0f };
         DrawRectangleRec(playerRect, WHITE);*/
         if (player.alive)
@@ -561,18 +728,25 @@ int main(void)
                 PlayerBreakBlock(&player, envItems.data(), envItems.size(), LeftOrRight);
 
                 // Golpear pterodáctilo
-                PlayerAttackEnemy(&player, &pterodactil, LeftOrRight);
+                for (int i = 0; i < pterodactilos.size(); i++)
+                {
+                    PlayerAttackEnemy(&player, &pterodactilos[i], LeftOrRight);
+                }
             }
 
       
         }
 
-        if (pterodactil.vida)
+        for (int i = 0; i < pterodactilos.size(); i++)
         {
-            if (pterodactil.velocitat > 0)
-                DrawTextureRec(MonsterBirdR, framePterodactil, Vector2{ pterodactil.posicio.x, pterodactil.posicio.y }, WHITE);
+            enemic* p = &pterodactilos[i];
+
+            if (!p->vida) continue;
+
+            if (p->velocitat > 0)
+                DrawTextureRec(MonsterBirdR, framePterodactil, Vector2{ p->posicio.x, p->posicio.y }, WHITE);
             else
-                DrawTextureRec(MonsterBirdL, framePterodactil, Vector2{ pterodactil.posicio.x, pterodactil.posicio.y }, WHITE);
+                DrawTextureRec(MonsterBirdL, framePterodactil, Vector2{ p->posicio.x, p->posicio.y }, WHITE);
         }
         
 
@@ -585,7 +759,9 @@ int main(void)
         
         
         EndMode2D();
-
+        
+        DrawText(TextFormat("Coins: %d", player.coins), 20, 20, 30, YELLOW);
+        
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
