@@ -71,6 +71,8 @@ Texture2D blockCalaveraGroc;
 Texture2D blockCalaveraRosa;
 Texture2D blockBossaCollons;
 
+Texture2D MIAU;
+
 Texture2D negro;
 
 
@@ -191,6 +193,8 @@ int main(void)
     blockCalaveraRosa = LoadTexture("resources/emoticonocalaverarosa.png");
     blockBossaCollons = LoadTexture("resources/bossadecollons.png");
 
+    MIAU = LoadTexture("resources/wabbit_alpha.png");
+
     negro = LoadTexture("resources/Negro.png");
     
 
@@ -201,6 +205,7 @@ int main(void)
     Rectangle frameRecPuny = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle frameRecCrouch = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle framePterodactil = { 0.0f, 0.0f, ((float)MonsterBirdR.width / 2), ((float)MonsterBirdR.height) };
+    Rectangle frameMiau = { 0.0f, 0.0f, ((float)MIAU.width / 2), ((float)MIAU.height) };
 
 
     int playerFrame = 0;
@@ -208,6 +213,9 @@ int main(void)
 
     int pteroFrame = 0;
     int pteroCounter = 0;
+
+    int miauCounter = 0;
+    int miauFrame = 0;
 
     int framesSpeed = 8;
 
@@ -315,7 +323,7 @@ int main(void)
 
 #define TILE_SIZE 80
 
-    int map[101][24] = {
+    int map[103][24] = {
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -415,7 +423,10 @@ int main(void)
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
-{3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3}
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3 },
+{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3 }
+
     };
 
     std::vector<EnvItem> envItems;
@@ -615,6 +626,16 @@ int main(void)
             framePterodactil.x = (float)pteroFrame * (float)MonsterBirdR.width / 2;
         }
 
+        miauCounter++;
+
+        if (miauCounter >= (150 / framesSpeed)) {
+            miauCounter = 0;
+            miauFrame++;
+            if (miauFrame > 1) miauFrame = 0;
+
+            frameMiau.x = (float)miauFrame * (float)MIAU.width / 2;
+        }
+
         // Update
         //----------------------------------------------------------------------------------
         float deltaTime = GetFrameTime();
@@ -764,10 +785,8 @@ int main(void)
         DrawTextureEx(nuvol, Vector2{ 700, 150 }, 0, 0.2f, WHITE);
         DrawTextureEx(nuvol, Vector2{ 950, 0 }, 0, 0.2f, WHITE);
         
-        DrawTextureEx(blockSolidTerra,
-            Vector2{ petPosition.x - 40, petPosition.y - 40 },
-            0,
-            1.0f,
+        DrawTextureRec(MIAU, frameMiau,
+            Vector2{ petPosition.x - 40, petPosition.y - 60 },
             WHITE);
 
         for (int i = 0; i < envItems.size(); i++)
