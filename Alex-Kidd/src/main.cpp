@@ -231,6 +231,8 @@ int main(void)
     player.jumpTime = 0;
     player.coins = 0;
 
+    Vector2 petPosition = player.position;
+
     std::vector<enemic> pterodactilos;
 
     // 🔹 Crear uno
@@ -619,6 +621,84 @@ int main(void)
 
         UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
+        float followSpeed = 5.0f; // suavidad (más alto = más rápido)
+
+        Vector2 direction = Vector2Subtract(player.position, petPosition);
+
+        // 👇 AQUÍ VA LA MASCOTA
+        float side = (player.velX >= 0) ? -80 : 80;
+        Vector2 offset = { side, 0 };
+        Vector2 targetPos = Vector2Add(player.position, offset);
+
+        // ---------------------------
+// HITBOX DE LA MASCOTA
+// ---------------------------
+        Rectangle petRect = {
+            petPosition.x - 20,
+            petPosition.y - 20,
+            40,
+            40
+        };
+
+        // ---------------------------
+        // MOVIMIENTO HACIA EL TARGET
+        // ---------------------------
+        Vector2 dir = Vector2Subtract(targetPos, petPosition);
+
+        // suavizado
+        Vector2 velocity = {
+            dir.x * followSpeed * deltaTime,
+            dir.y * followSpeed * deltaTime
+        };
+
+        // ---------------------------
+        // COLISIÓN EN X
+        // ---------------------------
+        petRect.x += velocity.x;
+
+        for (int i = 0; i < envItems.size(); i++)
+        {
+            EnvItem* ei = &envItems[i];
+
+            if (ei->blocking && ei->active)
+            {
+                if (CheckCollisionRecs(petRect, ei->rect))
+                {
+                    if (velocity.x > 0)
+                        petRect.x = ei->rect.x - petRect.width;
+                    else if (velocity.x < 0)
+                        petRect.x = ei->rect.x + ei->rect.width;
+                }
+            }
+        }
+
+        // ---------------------------
+        // COLISIÓN EN Y
+        // ---------------------------
+        petRect.y += velocity.y;
+
+        for (int i = 0; i < envItems.size(); i++)
+        {
+            EnvItem* ei = &envItems[i];
+
+            if (ei->blocking && ei->active)
+            {
+                if (CheckCollisionRecs(petRect, ei->rect))
+                {
+                    if (velocity.y > 0)
+                        petRect.y = ei->rect.y - petRect.height;
+                    else if (velocity.y < 0)
+                        petRect.y = ei->rect.y + ei->rect.height;
+                }
+            }
+        }
+
+        // ---------------------------
+        // ACTUALIZAR POSICIÓN FINAL
+        // ---------------------------
+        petPosition.x = petRect.x + petRect.width / 2;
+        petPosition.y = petRect.y + petRect.height / 2;
+
         if (!player.alive)
         {
             player.respawnTimer -= deltaTime;
@@ -683,6 +763,12 @@ int main(void)
         DrawTextureEx(nuvol, Vector2{ 200, -100 }, 0, 0.2f, WHITE);
         DrawTextureEx(nuvol, Vector2{ 700, 150 }, 0, 0.2f, WHITE);
         DrawTextureEx(nuvol, Vector2{ 950, 0 }, 0, 0.2f, WHITE);
+        
+        DrawTextureEx(blockSolidTerra,
+            Vector2{ petPosition.x - 40, petPosition.y - 40 },
+            0,
+            1.0f,
+            WHITE);
 
         for (int i = 0; i < envItems.size(); i++)
         {
