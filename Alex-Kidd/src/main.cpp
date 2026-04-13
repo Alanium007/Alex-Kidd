@@ -287,21 +287,21 @@ int main(void)
 
     // 🔹 Otro más
     enemic p8 = { 0 };
-    p8.posicio = Vector3{ 600, 4960 };
+    p8.posicio = Vector3{ 600, 5210 };
     p8.velocitat = 2;
     p8.vida = true;
     pterodactilos.push_back(p8);
 
     // 🔹 Otro más
     enemic p9 = { 0 };
-    p9.posicio = Vector3{ 600, 5760 };
+    p9.posicio = Vector3{ 600, 6000 };
     p9.velocitat = 2;
     p9.vida = true;
     pterodactilos.push_back(p9);
 
     // 🔹 Otro más
     enemic p10 = { 0 };
-    p10.posicio = Vector3{ 600, 6320 };
+    p10.posicio = Vector3{ 500, 6580 };
     p10.velocitat = 2;
     p10.vida = true;
     pterodactilos.push_back(p10);
