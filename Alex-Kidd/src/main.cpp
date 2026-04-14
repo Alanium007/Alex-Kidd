@@ -34,6 +34,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TILE_EMOTICONOCALAVERAGROC    11
 #define TILE_EMOTICONOCALAVERAROSA    12
 #define TILE_BOSSACOLLONS    13
+#define TILE_BOSSACOLLONSPETIT 14
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
 
@@ -70,6 +71,7 @@ Texture2D blockEstrella;
 Texture2D blockCalaveraGroc;
 Texture2D blockCalaveraRosa;
 Texture2D blockBossaCollons;
+Texture2D blockBossaCollonsPetit;
 
 Texture2D MIAU;
 
@@ -122,6 +124,7 @@ typedef struct EnvItem {
 
     DropType drop;   // 🎁 NUEVO
     bool collectible;   // 🆕 NUEVO
+    float lifetime;     // ← NUEVO: tiempo de vida de las bolsas
 } EnvItem;
 
 typedef struct enemic {
@@ -192,8 +195,9 @@ int main(void)
     blockCalaveraGroc = LoadTexture("resources/emoticonocalaveragroga.png");
     blockCalaveraRosa = LoadTexture("resources/emoticonocalaverarosa.png");
     blockBossaCollons = LoadTexture("resources/bossadecollons.png");
+    blockBossaCollonsPetit = LoadTexture("resources/bossadecollonspetit.png");
 
-    MIAU = LoadTexture("resources/wabbit_alpha.png");
+    MIAU = LoadTexture("resources/Patricio.png");
 
     negro = LoadTexture("resources/Negro.png");
     
@@ -205,7 +209,7 @@ int main(void)
     Rectangle frameRecPuny = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle frameRecCrouch = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle framePterodactil = { 0.0f, 0.0f, ((float)MonsterBirdR.width / 2), ((float)MonsterBirdR.height) };
-    Rectangle frameMiau = { 0.0f, 0.0f, ((float)MIAU.width / 2), ((float)MIAU.height) };
+    //Rectangle frameMiau = { 0.0f, 0.0f, ((float)MIAU.width / 1), ((float)MIAU.height) };
 
 
     int playerFrame = 0;
@@ -318,7 +322,7 @@ int main(void)
     player.position = Vector2{ 550, 200 };
     player.spawn = player.position;   // 👈 guardar spawn
     player.alive = true;
-    player.respawnTimer = 0;
+    player.respawnTimer = 2.0f;
   
 
 #define TILE_SIZE 80
@@ -532,6 +536,8 @@ int main(void)
                 item.drop = DROP_NONE;
             }
             envItems.push_back(item);
+
+            envItems.back().lifetime = 0.0f;
         }
     }
 
@@ -626,7 +632,7 @@ int main(void)
             framePterodactil.x = (float)pteroFrame * (float)MonsterBirdR.width / 2;
         }
 
-        miauCounter++;
+        /*miauCounter++;
 
         if (miauCounter >= (150 / framesSpeed)) {
             miauCounter = 0;
@@ -634,7 +640,7 @@ int main(void)
             if (miauFrame > 1) miauFrame = 0;
 
             frameMiau.x = (float)miauFrame * (float)MIAU.width / 2;
-        }
+        }*/
 
         // Update
         //----------------------------------------------------------------------------------
@@ -727,8 +733,67 @@ int main(void)
             if (player.respawnTimer <= 0)
             {
                 player.alive = true;
-                player.position = player.spawn;
                 player.speedY = 0;
+                player.velX = 0;
+
+                // ==================== SPAWN DINÀMIC SEGUR (sense blocs sòlids) ====================
+                Vector2 spawnPos = { camera.target.x , camera.target.y - 250 }; // punt inicial aproximat
+
+                // Busquem cap avall un lloc segur (amb aire a sobre i terra a sota)
+                const float maxSearchDown = 600.0f;   // quant baixem com a màxim
+                bool foundSafeSpot = false;
+
+                for (float testY = spawnPos.y; testY < spawnPos.y + maxSearchDown; testY += 40.0f)
+                {
+                    Rectangle testRect = { spawnPos.x - 20, testY - 80, 40, 160 }; // hitbox gran per comprovar espai
+
+                    bool collision = false;
+
+                    for (int i = 0; i < envItems.size(); i++)
+                    {
+                        EnvItem* ei = &envItems[i];
+                        if (ei->active && ei->blocking && CheckCollisionRecs(testRect, ei->rect))
+                        {
+                            collision = true;
+                            break;
+                        }
+                    }
+
+                    if (!collision)
+                    {
+                        // Comprovem que hi hagi terra a sota (per no caure al buit)
+                        Rectangle feetRect = { spawnPos.x - 20, testY + 75, 40, 20 };
+                        bool hasGround = false;
+
+                        for (int i = 0; i < envItems.size(); i++)
+                        {
+                            EnvItem* ei = &envItems[i];
+                            if (ei->active && ei->blocking && CheckCollisionRecs(feetRect, ei->rect))
+                            {
+                                hasGround = true;
+                                break;
+                            }
+                        }
+
+                        if (hasGround)
+                        {
+                            spawnPos.y = testY;
+                            foundSafeSpot = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Si no hem trobat res segur, posem un fallback raonable
+                if (!foundSafeSpot)
+                {
+                    spawnPos.y = camera.target.y - 100;
+                    printf("Spawn fallback utilitzat\n");
+                }
+
+                player.position = spawnPos;
+
+                printf("Respawn segur a: %.0f, %.0f\n", player.position.x, player.position.y);
             }
         }
 
@@ -751,24 +816,46 @@ int main(void)
     80
         };
 
+        // ====================== RECOGER BOLSAS Y DESAPARICIÓN POR TIEMPO ======================
         for (int i = 0; i < envItems.size(); i++)
         {
             EnvItem* ei = &envItems[i];
-
             if (!ei->active) continue;
 
             if (ei->collectible)
             {
+                // Recoger bolsa si el jugador la toca
                 if (CheckCollisionRecs(playerRect, ei->rect))
                 {
                     ei->active = false;
 
-                    player.coins += 100; // 💰 SUMA 100
+                    if (ei->texture.id == blockBossaCollons.id)
+                    {
+                        player.coins += 100;
+                        printf("¡Bossa GRANDE recogida! +100 monedas\n");
+                    }
+                    else if (ei->texture.id == blockBossaCollonsPetit.id)
+                    {
+                        player.coins += 50;
+                        printf("¡Bossa PETITA recogida! +50 monedas\n");
+                    }
+                    printf("Total monedas: %d\n", player.coins);
+                    continue;
+                }
 
-                    printf("Monedas: %d\n", player.coins);
+                // Descontar tiempo de vida y desaparecer si se acaba
+                if (ei->lifetime > 0)
+                {
+                    ei->lifetime -= deltaTime;
+
+                    if (ei->lifetime <= 0)
+                    {
+                        ei->active = false;
+                        printf("Una bolsa ha desaparecido por tiempo\n");
+                    }
                 }
             }
-        }   
+        }
         BeginDrawing();
         
 
@@ -784,10 +871,9 @@ int main(void)
         DrawTextureEx(nuvol, Vector2{ 200, -100 }, 0, 0.2f, WHITE);
         DrawTextureEx(nuvol, Vector2{ 700, 150 }, 0, 0.2f, WHITE);
         DrawTextureEx(nuvol, Vector2{ 950, 0 }, 0, 0.2f, WHITE);
+        DrawTextureEx(MIAU, Vector2{ petPosition.x - 40, petPosition.y - 85 }, 0, 1.0f, WHITE);
         
-        DrawTextureRec(MIAU, frameMiau,
-            Vector2{ petPosition.x - 40, petPosition.y - 60 },
-            WHITE);
+        
 
         for (int i = 0; i < envItems.size(); i++)
         {
@@ -1067,11 +1153,11 @@ else
 }
 void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight)
 {
-    // Rectángulo de acción delante del jugador
+    // Rectángulo del puño (área donde golpeas)
     float width = 50;
     float height = 40;
-    float offsetX = (LeftOrRight == 0) ? 20 : -width; // derecha o izquierda
-    float offsetY = -60; // altura del puño desde la base del jugador
+    float offsetX = (LeftOrRight == 0) ? 20 : -width;
+    float offsetY = -60;
 
     Rectangle actionRect = {
         player->position.x + offsetX,
@@ -1083,13 +1169,43 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
     for (int i = 0; i < envItemsLength; i++)
     {
         EnvItem* ei = &envItems[i];
+        if (!ei->active) continue;
 
-        if (ei->active && ei->type == BLOCK_BREAKABLE)
+        if (CheckCollisionRecs(actionRect, ei->rect))
         {
-            if (CheckCollisionRecs(actionRect, ei->rect))
+            // ====================== SOLO LOS BLOQUES DE ESTRELLA sueltan bolsa ======================
+            if (ei->drop == DROP_STAR && ei->texture.id == blockEstrella.id)
             {
-                // Desactivar bloque
+                // Decidir aleatoriamente: 50% grande - 50% pequeña
+                bool esGran = GetRandomValue(0, 1) == 0;
+
+                if (esGran)
+                {
+                    ei->texture = blockBossaCollons;
+                    printf("¡Estrella rota! → Bossa GRANDE (+100)\n");
+                }
+                else
+                {
+                    ei->texture = blockBossaCollonsPetit;
+                    printf("¡Estrella rota! → Bossa PETITA (+50)\n");
+                }
+
+                ei->type = BLOCK_SOLID;
+                ei->blocking = 0;
+                ei->collectible = true;
+                ei->drop = DROP_NONE;
+                ei->lifetime = 8.0f;        // La bolsa desaparece en 8 segundos
+
+                continue;
+            }
+
+            // ====================== BLOQUES NORMALES ROMPIBLES (tipo 2) ======================
+            // Solo se rompen, NO dan monedas
+            if (ei->type == BLOCK_BREAKABLE)
+            {
                 ei->active = false;
+                printf("Bloque rompible destruido (sin monedas)\n");
+                // NO sumamos monedas aquí
             }
         }
     }
