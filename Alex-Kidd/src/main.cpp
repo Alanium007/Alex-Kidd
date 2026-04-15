@@ -55,6 +55,8 @@ Texture2D AlexKiddPunyR;
 Texture2D AlexKiddPunyL;
 Texture2D AlexKiddCrouchR;
 Texture2D AlexKiddCrouchL;
+Texture2D AlexKiddDeath;
+
 Texture2D MonsterBirdR;
 Texture2D MonsterBirdL;
 
@@ -95,6 +97,8 @@ typedef struct Player {
     bool isJumping;
     float jumpTime;
     int coins;   // 🆕 MONEDAS
+
+
 } Player;
 
 //typedef struct EnvItem {
@@ -180,6 +184,8 @@ int main(void)
     AlexKiddPunyL = LoadTexture("resources/AlexKiddPunyL.png");
     AlexKiddCrouchR = LoadTexture("resources/AlexKiddCrouchR.png");
     AlexKiddCrouchL = LoadTexture("resources/AlexKiddCrouchL.png");
+    AlexKiddDeath = LoadTexture("resources/AlexKiddDeath.png");
+
     MonsterBirdR = LoadTexture("resources/MonsterBirdR.png");
     MonsterBirdL = LoadTexture("resources/MonsterBirdL.png");
 
@@ -209,6 +215,7 @@ int main(void)
     Rectangle frameRecPuny = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle frameRecCrouch = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle framePterodactil = { 0.0f, 0.0f, ((float)MonsterBirdR.width / 2), ((float)MonsterBirdR.height) };
+    Rectangle frameRecDeath = { 0.0f, 0.0f, ((float)AlexKiddDeath.width / 3), ((float)AlexKiddDeath.height) };
     //Rectangle frameMiau = { 0.0f, 0.0f, ((float)MIAU.width / 1), ((float)MIAU.height) };
 
 
@@ -242,6 +249,10 @@ int main(void)
     player.isJumping = false;
     player.jumpTime = 0;
     player.coins = 0;
+    
+    player.spawn = player.position;   // 👈 guardar spawn
+    player.alive = true;
+    player.respawnTimer = 2.0f;
 
     Vector2 petPosition = player.position;
 
@@ -644,87 +655,94 @@ int main(void)
 
         // Update
         //----------------------------------------------------------------------------------
-        float deltaTime = GetFrameTime();
+        
 
+        float deltaTime = GetFrameTime();
         UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
-        float followSpeed = 5.0f; // suavidad (más alto = más rápido)
+        // =============================================
+        // MOVIMIENTO ORIGINAL + TELEPORT ANTI-BUG
+        // =============================================
+        static float teleportCooldown = 0.0f;
+        const float MAX_FOLLOW_DISTANCE = 1000.0f;   // Si se aleja más de esto → teleport
+        const float TELEPORT_OFFSET = 80.0f;
 
-        Vector2 direction = Vector2Subtract(player.position, petPosition);
+        if (teleportCooldown > 0.0f) {
+            teleportCooldown -= deltaTime;
+        }
 
-        // 👇 AQUÍ VA LA MASCOTA
+        // Posición objetivo (igual que tenías antes)
         float side = (player.velX >= 0) ? -80 : 80;
-        Vector2 offset = { side, 0 };
-        Vector2 targetPos = Vector2Add(player.position, offset);
+        Vector2 targetPos = Vector2Add(player.position, Vector2 { side, 0 });
 
-        // ---------------------------
-// HITBOX DE LA MASCOTA
-// ---------------------------
-        Rectangle petRect = {
-            petPosition.x - 20,
-            petPosition.y - 20,
-            40,
-            40
-        };
+        // Calcular distancia
+        float distance = Vector2Length(Vector2Subtract(player.position, petPosition));
 
-        // ---------------------------
-        // MOVIMIENTO HACIA EL TARGET
-        // ---------------------------
-        Vector2 dir = Vector2Subtract(targetPos, petPosition);
-
-        // suavizado
-        Vector2 velocity = {
-            dir.x * followSpeed * deltaTime,
-            dir.y * followSpeed * deltaTime
-        };
-
-        // ---------------------------
-        // COLISIÓN EN X
-        // ---------------------------
-        petRect.x += velocity.x;
-
-        for (int i = 0; i < envItems.size(); i++)
+        // TELEPORT SI ESTÁ DEMASIADO LEJOS (anti-bug)
+        if (distance > MAX_FOLLOW_DISTANCE && teleportCooldown <= 0.0f && player.alive)
         {
-            EnvItem* ei = &envItems[i];
+            petPosition = targetPos;
+            petPosition.y -= 30.0f;           // pequeño ajuste para no spawnear dentro del suelo
 
-            if (ei->blocking && ei->active)
+            teleportCooldown = 1.2f;          // cooldown para no teleportar cada frame
+            printf("¡Mascota teletransportada! (distancia: %.1f)\n", distance);
+        }
+        else
+        {
+            // ====================== MOVIMIENTO ORIGINAL (sin cambios) ======================
+            float followSpeed = 5.0f;
+
+            Vector2 dir = Vector2Subtract(targetPos, petPosition);
+            Vector2 velocity = {
+                dir.x * followSpeed * deltaTime,
+                dir.y * followSpeed * deltaTime
+            };
+
+            Rectangle petRect = {
+                petPosition.x - 20,
+                petPosition.y - 20,
+                40,
+                40
+            };
+
+            // COLISIÓN EN X
+            petRect.x += velocity.x;
+            for (int i = 0; i < envItems.size(); i++)
             {
-                if (CheckCollisionRecs(petRect, ei->rect))
+                EnvItem* ei = &envItems[i];
+                if (ei->blocking && ei->active)
                 {
-                    if (velocity.x > 0)
-                        petRect.x = ei->rect.x - petRect.width;
-                    else if (velocity.x < 0)
-                        petRect.x = ei->rect.x + ei->rect.width;
+                    if (CheckCollisionRecs(petRect, ei->rect))
+                    {
+                        if (velocity.x > 0)
+                            petRect.x = ei->rect.x - petRect.width;
+                        else if (velocity.x < 0)
+                            petRect.x = ei->rect.x + ei->rect.width;
+                    }
                 }
             }
-        }
 
-        // ---------------------------
-        // COLISIÓN EN Y
-        // ---------------------------
-        petRect.y += velocity.y;
-
-        for (int i = 0; i < envItems.size(); i++)
-        {
-            EnvItem* ei = &envItems[i];
-
-            if (ei->blocking && ei->active)
+            // COLISIÓN EN Y
+            petRect.y += velocity.y;
+            for (int i = 0; i < envItems.size(); i++)
             {
-                if (CheckCollisionRecs(petRect, ei->rect))
+                EnvItem* ei = &envItems[i];
+                if (ei->blocking && ei->active)
                 {
-                    if (velocity.y > 0)
-                        petRect.y = ei->rect.y - petRect.height;
-                    else if (velocity.y < 0)
-                        petRect.y = ei->rect.y + ei->rect.height;
+                    if (CheckCollisionRecs(petRect, ei->rect))
+                    {
+                        if (velocity.y > 0)
+                            petRect.y = ei->rect.y - petRect.height;
+                        else if (velocity.y < 0)
+                            petRect.y = ei->rect.y + ei->rect.height;
+                    }
                 }
             }
-        }
 
-        // ---------------------------
-        // ACTUALIZAR POSICIÓN FINAL
-        // ---------------------------
-        petPosition.x = petRect.x + petRect.width / 2;
-        petPosition.y = petRect.y + petRect.height / 2;
+            // ACTUALIZAR POSICIÓN FINAL
+            petPosition.x = petRect.x + petRect.width / 2;
+            petPosition.y = petRect.y + petRect.height / 2;
+        }
 
         if (!player.alive)
         {
