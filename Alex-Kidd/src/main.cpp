@@ -98,6 +98,13 @@ typedef struct Player {
     float jumpTime;
     int coins;   // 🆕 MONEDAS
 
+    int lives;           // 🆕 VIDAS
+    bool deathAnim;      // 🆕 animación de muerte activa
+    float deathY;        // 🆕 posición Y durante la animación
+    float deathX;        // 🆕 posición X fija durante la animación
+    int deathFrame;      // 🆕 frame actual de la animación
+    int deathFrameCounter; // 🆕 contador de frames
+
 
 } Player;
 
@@ -249,10 +256,19 @@ int main(void)
     player.isJumping = false;
     player.jumpTime = 0;
     player.coins = 0;
+
+    player.lives = 3;        // 🆕
+    player.deathAnim = false;
+    player.deathY = 0;
+    player.deathX = 0;
+    player.deathFrame = 0;
+    player.deathFrameCounter = 0;
     
     player.spawn = player.position;   // 👈 guardar spawn
     player.alive = true;
     player.respawnTimer = 2.0f;
+
+    bool gameOver = false;
 
     Vector2 petPosition = player.position;
 
@@ -744,74 +760,86 @@ int main(void)
             petPosition.y = petRect.y + petRect.height / 2;
         }
 
-        if (!player.alive)
+        // ==================== MUERTE + ANIMACIÓN + GAME OVER ====================
+        if (!player.alive && !player.deathAnim && !gameOver)
         {
-            player.respawnTimer -= deltaTime;
+            // Primera vez que muere: iniciar animación
+            player.deathAnim = true;
+            player.deathY = player.position.y - 80;  // posición del sprite
+            player.deathX = player.position.x - 40;
+            player.deathFrame = 0;
+            player.deathFrameCounter = 0;
+            player.lives--;
+            printf("Vidas restantes: %d\n", player.lives);
 
-            if (player.respawnTimer <= 0)
+            if (player.lives <= 0)
             {
+                gameOver = true;
+            }
+        }
+
+        if (player.deathAnim)
+        {
+            // Subir el sprite hacia arriba, ignorando colisiones
+            player.deathY -= 300.0f * deltaTime;
+
+            // Animar frames de muerte
+            player.deathFrameCounter++;
+            if (player.deathFrameCounter >= 8)
+            {
+                player.deathFrameCounter = 0;
+                player.deathFrame++;
+                if (player.deathFrame > 2) player.deathFrame = 2; // último frame
+            }
+
+            // Cuando sale por arriba de la pantalla → respawn (si tiene vidas)
+            float screenTopWorld = camera.target.y - (screenHeight / camera.zoom);
+            if (player.deathY < screenTopWorld && !gameOver)
+            {
+                player.deathAnim = false;
                 player.alive = true;
                 player.speedY = 0;
                 player.velX = 0;
 
-                // ==================== SPAWN DINÀMIC SEGUR (sense blocs sòlids) ====================
-                Vector2 spawnPos = { camera.target.x , camera.target.y - 250 }; // punt inicial aproximat
-
-                // Busquem cap avall un lloc segur (amb aire a sobre i terra a sota)
-                const float maxSearchDown = 600.0f;   // quant baixem com a màxim
+                // Spawn seguro (igual que antes)
+                Vector2 spawnPos = { camera.target.x, camera.target.y - 250 };
+                const float maxSearchDown = 600.0f;
                 bool foundSafeSpot = false;
 
                 for (float testY = spawnPos.y; testY < spawnPos.y + maxSearchDown; testY += 40.0f)
                 {
-                    Rectangle testRect = { spawnPos.x - 20, testY - 80, 40, 160 }; // hitbox gran per comprovar espai
-
+                    Rectangle testRect = { spawnPos.x - 20, testY - 80, 40, 160 };
                     bool collision = false;
-
                     for (int i = 0; i < envItems.size(); i++)
                     {
                         EnvItem* ei = &envItems[i];
                         if (ei->active && ei->blocking && CheckCollisionRecs(testRect, ei->rect))
                         {
-                            collision = true;
-                            break;
+                            collision = true; break;
                         }
                     }
-
                     if (!collision)
                     {
-                        // Comprovem que hi hagi terra a sota (per no caure al buit)
                         Rectangle feetRect = { spawnPos.x - 20, testY + 75, 40, 20 };
                         bool hasGround = false;
-
                         for (int i = 0; i < envItems.size(); i++)
                         {
                             EnvItem* ei = &envItems[i];
                             if (ei->active && ei->blocking && CheckCollisionRecs(feetRect, ei->rect))
                             {
-                                hasGround = true;
-                                break;
+                                hasGround = true; break;
                             }
                         }
-
-                        if (hasGround)
-                        {
-                            spawnPos.y = testY;
-                            foundSafeSpot = true;
-                            break;
-                        }
+                        if (hasGround) { spawnPos.y = testY; foundSafeSpot = true; break; }
                     }
                 }
-
-                // Si no hem trobat res segur, posem un fallback raonable
-                if (!foundSafeSpot)
-                {
-                    spawnPos.y = camera.target.y - 100;
-                    printf("Spawn fallback utilitzat\n");
-                }
-
+                if (!foundSafeSpot) spawnPos.y = camera.target.y - 100;
                 player.position = spawnPos;
-
-                printf("Respawn segur a: %.0f, %.0f\n", player.position.x, player.position.y);
+                printf("Respawn a: %.0f, %.0f\n", player.position.x, player.position.y);
+            }
+            else if (player.deathY < screenTopWorld && gameOver)
+            {
+                player.deathAnim = false; // parar animación, mostrar Game Over
             }
         }
 
@@ -913,6 +941,20 @@ int main(void)
         }
         /*Rectangle playerRect = { player.position.x - 20, player.position.y - 40, 35.0f, 40.0f };
         DrawRectangleRec(playerRect, WHITE);*/
+
+        // Dibujar animación de muerte (sube atravesando todo)
+        if (player.deathAnim)
+        {
+            Rectangle frameRecDeath = {
+                (float)player.deathFrame * (AlexKiddDeath.width / 3.0f),
+                0,
+                AlexKiddDeath.width / 3.0f,
+                (float)AlexKiddDeath.height
+            };
+            DrawTextureRec(AlexKiddDeath, frameRecDeath,
+                Vector2{ player.deathX, player.deathY }, WHITE);
+        }
+
         if (player.alive)
         {
             if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
@@ -968,6 +1010,48 @@ int main(void)
         
         
         EndMode2D();
+
+
+        // HUD: vidas
+        for (int i = 0; i < player.lives; i++)
+        {
+            DrawTextureEx(AlexKiddIdleR,
+                Vector2{ 20.0f + i * 45.0f, 60.0f },
+                0, 0.35f, WHITE);
+        }
+
+        // PANTALLA GAME OVER
+        if (gameOver && !player.deathAnim)
+        {
+            DrawRectangle(0, 0, screenWidth, screenHeight, Color{ 0, 0, 0, 180 });
+
+            int fontSize = 120;
+            const char* text = "GAME OVER";
+            int textW = MeasureText(text, fontSize);
+            DrawText(text, screenWidth / 2 - textW / 2, screenHeight / 2 - 80, fontSize, RED);
+
+            const char* sub = "Prem R per tornar a jugar";
+            int subW = MeasureText(sub, 40);
+            DrawText(sub, screenWidth / 2 - subW / 2, screenHeight / 2 + 70, 40, WHITE);
+
+            // Reiniciar
+            if (IsKeyPressed(KEY_R))
+            {
+                gameOver = false;
+                player.lives = 3;
+                player.alive = true;
+                player.speedY = 0;
+                player.velX = 0;
+                player.coins = 0;
+                player.deathAnim = false;
+                player.position = Vector2{ 550, 200 };
+                camera.target = Vector2{ 550, 200 };
+                camera.offset = Vector2{ screenWidth / 3.3f, screenHeight / 1.5f };
+                // Reactivar todos los bloques
+                for (int i = 0; i < envItems.size(); i++)
+                    envItems[i].active = true;
+            }
+        }
         
         DrawText(TextFormat("Coins: %d", player.coins), 20, 20, 30, YELLOW);
         
@@ -1475,25 +1559,31 @@ void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, i
 {
     static float lowestY = 0;
     static float fixedX = 0;
+    static bool initialized = false;
 
     camera->offset = Vector2{ width / 3.3f, height / 1.5f };
 
-    // Guardar posición inicial SOLO UNA VEZ
-    if (lowestY == 0)
+    // Reset forzado si el jugador está cerca del spawn
+    if (player->position.y < 300 && player->position.x < 600)
     {
-        lowestY = player->position.y+400;
-        fixedX = 582; // 👈 bloqueamos la X aquí
+        lowestY = 0;
+        initialized = false;
     }
 
-    // SOLO baja (nunca sube)
+    if (!initialized || lowestY == 0)
+    {
+        lowestY = player->position.y + 400;
+        fixedX = 582;
+        initialized = true;
+    }
+
     if (player->position.y > lowestY)
     {
         lowestY = player->position.y;
     }
 
-    // 👇 IMPORTANTE
-    camera->target.x = fixedX;   // ❌ nunca sigue al jugador en horizontal
-    camera->target.y = lowestY;  // ✅ solo baja
+    camera->target.x = fixedX;
+    camera->target.y = lowestY;
 }
 
 
