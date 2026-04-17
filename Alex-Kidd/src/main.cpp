@@ -35,6 +35,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TILE_EMOTICONOCALAVERAROSA    12
 #define TILE_BOSSACOLLONS    13
 #define TILE_BOSSACOLLONSPETIT 14
+#define TILE_PORTA 15
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
 
@@ -69,6 +70,7 @@ Texture2D blockHerbaL;
 Texture2D blockSolidHerba;
 Texture2D blockInterrogant;
 Texture2D blockEstrella;
+Texture2D blockPorta;
 
 Texture2D blockCalaveraGroc;
 Texture2D blockCalaveraRosa;
@@ -108,12 +110,7 @@ typedef struct Player {
 
 } Player;
 
-//typedef struct EnvItem {
-//    Rectangle rect;
-//    int blocking;
-//    Color color;
-//    Texture2D nuvol;
-//} EnvItem;
+
 
 typedef enum {
     BLOCK_SOLID,
@@ -137,6 +134,8 @@ typedef struct EnvItem {
     bool collectible;   // 🆕 NUEVO
     float lifetime;     // ← NUEVO: tiempo de vida de las bolsas
 } EnvItem;
+
+
 
 typedef struct enemic {
     bool vida;
@@ -209,6 +208,7 @@ int main(void)
     blockCalaveraRosa = LoadTexture("resources/emoticonocalaverarosa.png");
     blockBossaCollons = LoadTexture("resources/bossadecollons.png");
     blockBossaCollonsPetit = LoadTexture("resources/bossadecollonspetit.png");
+    blockPorta = LoadTexture("resources/Puerta.png");
 
     MIAU = LoadTexture("resources/Patricio.png");
 
@@ -447,7 +447,7 @@ int main(void)
 {3,3,3,3,1,0,0,0,2,13,0,5,6,0,10,0,2,13,0,1,3,3,3,3},
 {3,3,3,3,1,0,0,0,2,13,0,0,0,0,2,0,2,13,0,1,3,3,3,3},
 {3,3,3,3,1,0,0,0,2,0,5,4,6,0,10,0,2,0,0,1,3,3,3,3},
-{3,3,3,3,1,0,0,0,2,0,0,0,0,0,2,0,2,0,0,1,3,3,3,3}, // 11e Pterodactil
+{3,3,3,3,1,0,0,0,2,0,0,0,0,0,2,0,2,0,15,1,3,3,3,3}, // 11e Pterodactil
 {3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
@@ -461,6 +461,8 @@ int main(void)
     };
 
     std::vector<EnvItem> envItems;
+
+    
 
     // Generar mapa con los nuevos tiles
     for (int y = 0; y < 101; y++)
@@ -490,6 +492,12 @@ int main(void)
             else if (tile == TILE_NEGRO)
             {
                 item.texture = negro;
+                item.type = BLOCK_SOLID;
+                item.drop = DROP_NONE;
+            }
+            else if (tile == TILE_PORTA)
+            {
+                item.texture = blockPorta;
                 item.type = BLOCK_SOLID;
                 item.drop = DROP_NONE;
             }
@@ -569,7 +577,7 @@ int main(void)
     }
 
     int envItemsLength = sizeof(envItems) / sizeof(envItems[0]);
-
+    std::vector<EnvItem> originalEnvItems = envItems;
     Camera2D camera = { 0 };
     camera.target = player.position;
     camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
@@ -1047,9 +1055,13 @@ int main(void)
                 player.position = Vector2{ 550, 200 };
                 camera.target = Vector2{ 550, 200 };
                 camera.offset = Vector2{ screenWidth / 3.3f, screenHeight / 1.5f };
-                // Reactivar todos los bloques
-                for (int i = 0; i < envItems.size(); i++)
-                    envItems[i].active = true;
+
+                // ✅ Restaurar mapa completo al estado original
+                envItems = originalEnvItems;
+
+                // ✅ Reiniciar todos los pterodáctilos
+                for (int i = 0; i < pterodactilos.size(); i++)
+                    pterodactilos[i].vida = true;
             }
         }
         
@@ -1075,10 +1087,10 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     // HITBOX DEL JUGADOR
     // ---------------------------
     Rectangle playerRect = {
-        player->position.x - 20,
-        player->position.y - 80,
-        40,
-        80
+        player->position.x - 35,
+        player->position.y - 100,
+        70,
+        100
     };
 
     // ---------------------------
