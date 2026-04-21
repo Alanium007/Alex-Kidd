@@ -1,6 +1,7 @@
 GitHub Page
 https://github.com/Alanium007/Alex-Kidd
 
+
 Team members:
 
 Alan del Tío - Alanium007
@@ -11,8 +12,11 @@ Yarley Tituaña - yana-taoh
 
 Lluc Torner - LLucTheBoss
 
+
 Description of the game
+
 Alex Kidd in Miracle World is a 2D action-plataform game. You play as Alex Kidd, a young martial arts expert who has to rescue the kingdom of Radaxian out of the control of the evil Janken the Great.
+
 
 How to play:
 
@@ -27,6 +31,7 @@ W - Up
 Space - Jump 
 
 Enter -  Punch / Select
+
 
 List of features implemented:
 
