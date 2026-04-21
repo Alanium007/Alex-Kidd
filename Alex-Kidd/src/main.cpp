@@ -88,6 +88,7 @@ Sound levelStartSound;
 Sound coinSound;
 Sound punchSound;
 Sound coinBlockSound;
+Sound blockBreakSound;
 Music gameOverMusic;
 
 //----------------------------------------------------------------------------------
@@ -240,7 +241,10 @@ int main(void)
     SetSoundVolume(punchSound, 0.6f);
 
     coinBlockSound = LoadSound("resources/CoinBlock.wav");
-    SetSoundVolume(coinBlockSound, 0.6f);
+    SetSoundVolume(coinBlockSound, 1.0f);
+
+    blockBreakSound = LoadSound("resources/BlockBreak.wav");
+    SetSoundVolume(blockBreakSound, 1.0f);
 
     gameOverMusic = LoadMusicStream("resources/GameOver.wav");
     gameOverMusic.looping = false;
@@ -516,6 +520,7 @@ int main(void)
             gameState = STATE_MAP;        // va al mapa inmediatamente
             levelStarting = false;
             levelStartTimer = 0.0f;
+            
         }
         if (gameOver)
         {
@@ -914,6 +919,7 @@ int main(void)
     UnloadSound(coinSound);
     UnloadSound(punchSound);
     UnloadSound(coinBlockSound);
+    UnloadSound(blockBreakSound);
     UnloadMusicStream(titleMusic);
     UnloadMusicStream(gameMusic);
     UnloadMusicStream(gameOverMusic);
@@ -1060,6 +1066,10 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
                 continue;
             }
             if (ei->type == BLOCK_BREAKABLE) {
+                
+                if (ei->tileID == TILE_BREAK) {
+                    PlaySound(blockBreakSound);
+                }
                 
                 ei->active = false;
             }
