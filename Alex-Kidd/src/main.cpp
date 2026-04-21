@@ -89,6 +89,7 @@ Sound coinSound;
 Sound punchSound;
 Sound coinBlockSound;
 Sound blockBreakSound;
+Sound lifeTakenSound;
 Music gameOverMusic;
 
 //----------------------------------------------------------------------------------
@@ -245,6 +246,9 @@ int main(void)
 
     blockBreakSound = LoadSound("resources/BlockBreak.wav");
     SetSoundVolume(blockBreakSound, 1.0f);
+
+    lifeTakenSound = LoadSound("resources/LifeTaken.wav");
+    SetSoundVolume(lifeTakenSound, 0.8f);
 
     gameOverMusic = LoadMusicStream("resources/GameOver.wav");
     gameOverMusic.looping = false;
@@ -623,13 +627,14 @@ int main(void)
                 player.deathFrameCounter = 0;
                 player.lives--;
 
-                if (player.lives <= 0) {
+                StopMusicStream(gameMusic);
+
+                if (player.lives > 0) {
+                    PlaySound(lifeTakenSound);
+                }
+                else {
                     gameOver = true;
-
-                    StopMusicStream(gameMusic);
-
                     PlayMusicStream(gameOverMusic);
-                    
                 }
             }
 
@@ -650,6 +655,8 @@ int main(void)
                     player.alive = true;
                     player.speedY = 0;
                     player.velX = 0;
+
+                    PlayMusicStream(gameMusic);
 
                     Vector2 spawnPos = { camera.target.x+100, camera.target.y - 250 };
                     const float maxSearchDown = 600.0f;
@@ -920,6 +927,7 @@ int main(void)
     UnloadSound(punchSound);
     UnloadSound(coinBlockSound);
     UnloadSound(blockBreakSound);
+    UnloadSound(lifeTakenSound);
     UnloadMusicStream(titleMusic);
     UnloadMusicStream(gameMusic);
     UnloadMusicStream(gameOverMusic);
