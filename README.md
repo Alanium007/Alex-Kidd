@@ -13,7 +13,7 @@ Yarley Tituaña - yana-taoh
 Lluc Torner - LLucTheBoss
 
 
-Description of the game
+Description of the game:
 
 Alex Kidd in Miracle World is a 2D action-plataform game. You play as Alex Kidd, a young martial arts expert who has to rescue the kingdom of Radaxian out of the control of the evil Janken the Great.
 
@@ -30,7 +30,7 @@ W - Up
 
 Space - Jump 
 
-Enter -  Punch / Select
+Enter -  Punch / Pass Screen
 
 
 List of features implemented:
