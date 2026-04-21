@@ -80,6 +80,18 @@ Texture2D negro;
 
 Texture2D mapImage;
 
+Texture2D MenuFondo;
+Texture2D MenuTítol;
+Texture2D Menu1;
+Texture2D Menu2;
+Texture2D Menu3;
+Texture2D Menu4;
+Texture2D Menu5;
+Texture2D Menu6;
+
+Texture2D Inventari;
+
+Texture2D GameOver;
 // AUDIO
 Music titleMusic;
 Music gameMusic;
@@ -218,6 +230,21 @@ int main(void)
     negro = LoadTexture("resources/Negro.png");
 
     mapImage = LoadTexture("resources/mapa.png");
+
+    MenuFondo = LoadTexture("resources/Fondo.png");
+    MenuTítol = LoadTexture("resources/0.png");
+    Menu1 = LoadTexture("resources/1.png");
+    Menu2 = LoadTexture("resources/2.png");
+    Menu3 = LoadTexture("resources/3.png");
+    Menu4= LoadTexture("resources/4.png");
+    Menu5 = LoadTexture("resources/5.png");
+    Menu6 = LoadTexture("resources/6.png");
+
+    Inventari = LoadTexture("resources/Inventari.png");
+
+    GameOver = LoadTexture("resources/GameOver.png");
+
+
 
     // AUDIO - Cargar
     titleMusic = LoadMusicStream("resources/TitleScreen.wav");
@@ -496,12 +523,47 @@ int main(void)
 
     bool gameOver = false;
     float gameOverTimer = 0.0f;
+    // Variables animación menú
+    float menuImageTimer = 0.0f;
+    int menuImageIndex = 0;  // 0 = solo fondo+título, 1-6 = imágenes sucesivas
+    bool mostrarInventari = false;
 
     while (!WindowShouldClose())
     {
         // AUDIO - Actualizar stream según estado
-        if (gameState == STATE_MENU) {
+        if (gameState == STATE_MENU)
+        {
             UpdateMusicStream(titleMusic);
+            // Avanzar animación
+            if (menuImageIndex < 6) {
+                menuImageTimer += GetFrameTime();
+                if (menuImageTimer >= 0.5f) {
+                    menuImageTimer = 0.0f;
+                    menuImageIndex++;
+                }
+            }
+
+            // Fondo y título siempre visibles desde el inicio
+            DrawTexturePro(MenuFondo,
+                Rectangle{ 0, 0, (float)MenuFondo.width, (float)MenuFondo.height },
+                Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
+                Vector2{ 0, 0 }, 0.0f, WHITE);
+
+            DrawTexturePro(MenuTítol,
+                Rectangle{ 0, 0, (float)MenuTítol.width, (float)MenuTítol.height },
+                Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
+                Vector2{ 0, 0 }, 0.0f, WHITE);
+
+            // Imágenes que van apareciendo cada 0.5s
+            Texture2D menuImages[] = { Menu1, Menu2, Menu3, Menu4, Menu5, Menu6 };
+            for (int i = 0; i < menuImageIndex; i++) {
+                DrawTexturePro(menuImages[i],
+                    Rectangle{ 0, 0, (float)menuImages[i].width, (float)menuImages[i].height },
+                    Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
+                    Vector2{ 0, 0 }, 0.0f, WHITE);
+            }
+
+           
         }
         else if (gameState == STATE_PLAYING) {
             UpdateMusicStream(gameMusic);
@@ -571,6 +633,7 @@ int main(void)
             float deltaTime = GetFrameTime();
             UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
+            if (IsKeyPressed(KEY_P)) mostrarInventari = !mostrarInventari;
             // Mascota
             static float teleportCooldown = 0.0f;
             const float MAX_FOLLOW_DISTANCE = 1000.0f;
@@ -710,6 +773,8 @@ int main(void)
                     gameState = STATE_MENU;
                     gameOver = false;
                     player.lives = 3;
+                    menuImageTimer = 0.0f;
+                    menuImageIndex = 0;
                     player.alive = true;
                     player.speedY = 0;
                     player.velX = 0;
@@ -834,16 +899,12 @@ int main(void)
             // GAME OVER
             if (gameOver && !player.deathAnim)
             {
-                DrawRectangle(0, 0, screenWidth, screenHeight, Color{ 0, 0, 0, 180 });
-
-                int fontSize = 120;
-                const char* text = "GAME OVER";
-                int textW = MeasureText(text, fontSize);
-                DrawText(text, screenWidth / 2 - textW / 2, screenHeight / 2 - 80, fontSize, RED);
-
-                const char* sub = "Prem R per tornar al menu";
-                int subW = MeasureText(sub, 40);
-                DrawText(sub, screenWidth / 2 - subW / 2, screenHeight / 2 + 70, 40, WHITE);
+                DrawTexturePro(
+                    GameOver,
+                    Rectangle{ 0, 0, (float)GameOver.width, (float)GameOver.height },
+                    Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
+                    Vector2{ 0, 0 }, 0.0f, WHITE
+                );
 
                 if (IsKeyPressed(KEY_R))
                 {
@@ -858,6 +919,8 @@ int main(void)
 
                     player.lives = 3;
                     player.alive = true;
+                    menuImageTimer = 0.0f;
+                    menuImageIndex = 0;
                     player.speedY = 0;
                     player.velX = 0;
                     player.coins = 0;
@@ -894,28 +957,18 @@ int main(void)
                 gameState = STATE_PLAYING;
             }
         }
-        // MENÚ
-        if (gameState == STATE_MENU)
+        if (mostrarInventari)
         {
-            ClearBackground(BLAU);
-
-            const char* title = "ALEX KIDD";
-            int titleSize = 100;
-            int titleW = MeasureText(title, titleSize);
-            DrawText(title, screenWidth / 2 - titleW / 2, screenHeight / 2 - 180, titleSize, YELLOW);
-
-            if ((int)(GetTime() * 2) % 2 == 0) {
-                const char* prompt = "Prem ENTER per jugar";
-                int promptSize = 45;
-                int promptW = MeasureText(prompt, promptSize);
-                DrawText(prompt, screenWidth / 2 - promptW / 2, screenHeight / 2, promptSize, WHITE);
-            }
-
-            const char* controls = "A / D  ->  Moure   |   ESPAI  ->  Saltar   |   ENTER  ->  Atacar";
-            int ctrlW = MeasureText(controls, 28);
-            DrawText(controls, screenWidth / 2 - ctrlW / 2, screenHeight / 2 + 100, 28, LIGHTGRAY);
+            DrawTexturePro(
+                Inventari,
+                Rectangle{ 0, 0, (float)Inventari.width, (float)Inventari.height },
+                Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
+                Vector2{ 0, 0 }, 0.0f, WHITE
+            );
         }
-
+        // MENÚ
+        
+    
         EndDrawing();
     }
 
