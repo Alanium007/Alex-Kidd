@@ -78,6 +78,8 @@ Texture2D blockBossaCollonsPetit;
 Texture2D MIAU;
 Texture2D negro;
 
+Texture2D mapImage;
+
 // AUDIO
 Music titleMusic;
 Music gameMusic;
@@ -141,6 +143,7 @@ typedef struct enemic {
 
 typedef enum {
     STATE_MENU,
+    STATE_MAP,
     STATE_PLAYING
 } GameState;
 
@@ -208,6 +211,8 @@ int main(void)
 
     MIAU = LoadTexture("resources/Patricio.png");
     negro = LoadTexture("resources/Negro.png");
+
+    mapImage = LoadTexture("resources/mapa.png");
 
     // AUDIO - Cargar
     titleMusic = LoadMusicStream("resources/TitleScreen.wav");
@@ -496,9 +501,9 @@ int main(void)
         if (levelStarting) {
             levelStartTimer += GetFrameTime();
             if (levelStartTimer >= 1.8f) {
-                PlayMusicStream(gameMusic);
-                gameState = STATE_PLAYING;
+                gameState = STATE_MAP;   // <-- va al mapa, no al juego
                 levelStarting = false;
+                levelStartTimer = 0.0f;  // reutilizamos el timer para el mapa
             }
         }
         if (gameOver)
@@ -837,6 +842,27 @@ int main(void)
             }
         }
 
+        if (gameState == STATE_MAP)
+        {
+            levelStartTimer += GetFrameTime();
+
+            ClearBackground(BLACK);
+
+            // Dibuja la imagen centrada en pantalla
+            DrawTexturePro(
+                mapImage,
+                Rectangle{ 0, 0, (float)mapImage.width, (float)mapImage.height },
+                Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
+                Vector2{ 0, 0 }, 0.0f, WHITE
+            );
+
+            if (levelStartTimer >= 4.0f)
+            {
+                levelStartTimer = 0.0f;
+                PlayMusicStream(gameMusic);
+                gameState = STATE_PLAYING;
+            }
+        }
         // MENÚ
         if (gameState == STATE_MENU)
         {
