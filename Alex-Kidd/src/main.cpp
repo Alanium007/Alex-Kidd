@@ -85,6 +85,9 @@ Music titleMusic;
 Music gameMusic;
 Sound jumpSound;
 Sound levelStartSound;
+Sound coinSound;
+Sound punchSound;
+Sound coinBlockSound;
 Music gameOverMusic;
 
 //----------------------------------------------------------------------------------
@@ -230,9 +233,20 @@ int main(void)
     levelStartSound = LoadSound("resources/LevelStart.wav");
     SetSoundVolume(levelStartSound, 0.6f);
 
+    coinSound = LoadSound("resources/CoinCollection.wav");
+    SetSoundVolume(coinSound, 0.7f);
+
+    punchSound = LoadSound("resources/Punch.wav");
+    SetSoundVolume(punchSound, 0.6f);
+
+    coinBlockSound = LoadSound("resources/CoinBlock.wav");
+    SetSoundVolume(coinBlockSound, 0.6f);
+
     gameOverMusic = LoadMusicStream("resources/GameOver.wav");
     gameOverMusic.looping = false;
     SetMusicVolume(gameOverMusic, 0.6f);
+
+
    
 
     Rectangle frameRecR = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
@@ -701,9 +715,13 @@ int main(void)
                 {
                     if (CheckCollisionRecs(playerRect, ei->rect))
                     {
+                        PlaySound(coinSound);
+
                         ei->active = false;
+
                         if (ei->texture.id == blockBossaCollons.id) player.coins += 100;
                         else if (ei->texture.id == blockBossaCollonsPetit.id) player.coins += 50;
+
                         continue;
                     }
                     if (ei->lifetime > 0)
@@ -773,7 +791,11 @@ int main(void)
                 {
                     attacking = true;
                     attackTimer = 20;
+
+                    PlaySound(punchSound);
+
                     PlayerBreakBlock(&player, envItems.data(), envItems.size(), LeftOrRight);
+
                     for (int i = 0; i < (int)pterodactilos.size(); i++)
                         PlayerAttackEnemy(&player, &pterodactilos[i], LeftOrRight);
                 }
@@ -887,10 +909,13 @@ int main(void)
 
     // Unload
     UnloadTexture(background);
-    UnloadMusicStream(titleMusic);
-    UnloadMusicStream(gameMusic);
     UnloadSound(jumpSound);
     UnloadSound(levelStartSound);
+    UnloadSound(coinSound);
+    UnloadSound(punchSound);
+    UnloadSound(coinBlockSound);
+    UnloadMusicStream(titleMusic);
+    UnloadMusicStream(gameMusic);
     UnloadMusicStream(gameOverMusic);
     CloseAudioDevice();
     CloseWindow();
@@ -1021,9 +1046,12 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
         {
             if (ei->drop == DROP_STAR && ei->texture.id == blockEstrella.id)
             {
+                PlaySound(coinBlockSound);
+                
                 bool esGran = GetRandomValue(0, 1) == 0;
                 if (esGran) { ei->texture = blockBossaCollons; }
                 else { ei->texture = blockBossaCollonsPetit; }
+
                 ei->type = BLOCK_SOLID;
                 ei->blocking = 0;
                 ei->collectible = true;
@@ -1031,8 +1059,10 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
                 ei->lifetime = 8.0f;
                 continue;
             }
-            if (ei->type == BLOCK_BREAKABLE)
+            if (ei->type == BLOCK_BREAKABLE) {
+                
                 ei->active = false;
+            }
         }
     }
 }
