@@ -159,6 +159,7 @@ typedef struct enemic {
 } pterodactil, escorpi, mono;
 
 typedef enum {
+    STATE_CREDITS,
     STATE_MENU,
     STATE_MAP,
     STATE_PLAYING
@@ -188,10 +189,14 @@ int main(void)
     const int screenWidth = 1920;
     const int screenHeight = 900;
 
+    float creditsTimer = 0.0f;
+
     GameState gameState = STATE_MENU;
 
     InitWindow(screenWidth, screenHeight, "Alex Kidd");
     InitAudioDevice();
+
+    
 
     background = LoadTexture("resources/Alex-Kidd-assets.png");
     nuvol = LoadTexture("resources/nuvol.png");
@@ -530,6 +535,19 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+        if (gameState == STATE_CREDITS) {
+            creditsTimer += GetFrameTime();
+
+            if (creditsTimer >= 3.0f) {
+                StopMusicStream(gameMusic);
+                PlaySound(levelStartSound);
+                levelStarting = true;
+                levelStartTimer = 0.0f;
+                gameState = STATE_MAP;
+            }
+        }
+        
+        
         // AUDIO - Actualizar stream según estado
         if (gameState == STATE_MENU)
         {
@@ -576,18 +594,11 @@ int main(void)
         // MENU: detectar ENTER y arrancar transición de audio
         if (gameState == STATE_MENU && IsKeyPressed(KEY_ENTER)) {
             StopMusicStream(titleMusic);
-            PlaySound(levelStartSound);
-            levelStarting = true;
-            levelStartTimer = 0.0f;
+            gameState = STATE_CREDITS;
+            creditsTimer = 0.0f;
         }
 
-        // AUDIO - Transición: esperar sonido de inicio y arrancar música de juego
-        if (levelStarting) {
-            gameState = STATE_MAP;        // va al mapa inmediatamente
-            levelStarting = false;
-            levelStartTimer = 0.0f;
-            
-        }
+       
         if (gameOver)
         {
             UpdateMusicStream(gameOverMusic);
@@ -633,7 +644,9 @@ int main(void)
             float deltaTime = GetFrameTime();
             UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
-            if (IsKeyPressed(KEY_P)) mostrarInventari = !mostrarInventari;
+            if (IsKeyPressed(KEY_P)) {
+                mostrarInventari = !mostrarInventari;
+            }
             // Mascota
             static float teleportCooldown = 0.0f;
             const float MAX_FOLLOW_DISTANCE = 1000.0f;
@@ -812,6 +825,18 @@ int main(void)
 
         // DRAW
         BeginDrawing();
+
+        if (gameState == STATE_CREDITS)
+        {
+            ClearBackground(BLACK);
+
+            DrawText("CREDITS", screenWidth / 2 - 150, 200, 60, WHITE);
+
+            DrawText("Alan del Tio", screenWidth / 2 - 200, 350, 40, LIGHTGRAY);
+            DrawText("Ian Leon", screenWidth / 2 - 200, 420, 40, LIGHTGRAY);
+            DrawText("Yarley Tituana", screenWidth / 2 - 200, 490, 40, LIGHTGRAY);
+            DrawText("Lluc Torner", screenWidth / 2 - 200, 560, 40, LIGHTGRAY);
+        }
         ClearBackground(BLAU);
 
         if (gameState == STATE_PLAYING)
@@ -906,6 +931,8 @@ int main(void)
                     Vector2{ 0, 0 }, 0.0f, WHITE
                 );
 
+                
+
                 if (IsKeyPressed(KEY_R))
                 {
                     // AUDIO - Volver a música de menú
@@ -950,9 +977,8 @@ int main(void)
                 Vector2{ 0, 0 }, 0.0f, WHITE
             );
 
-            if (levelStartTimer >= 3.0f)
+            if (!IsSoundPlaying(levelStartSound))
             {
-                levelStartTimer = 0.0f;
                 PlayMusicStream(gameMusic);
                 gameState = STATE_PLAYING;
             }
