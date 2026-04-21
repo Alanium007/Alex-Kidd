@@ -129,6 +129,7 @@ typedef struct EnvItem {
     DropType drop;
     bool collectible;
     float lifetime;
+    int tileID;
 } EnvItem;
 
 typedef struct enemic {
@@ -286,7 +287,7 @@ int main(void)
     enemic p4 = { 0 }; p4.posicio = Vector3{ 600, 3040 }; p4.velocitat = 2; p4.vida = true; pterodactilos.push_back(p4);
     enemic p5 = { 0 }; p5.posicio = Vector3{ 800, 3780 }; p5.velocitat = 2; p5.vida = true; pterodactilos.push_back(p5);
     enemic p6 = { 0 }; p6.posicio = Vector3{ 600, 4100 }; p6.velocitat = 2; p6.vida = true; pterodactilos.push_back(p6);
-    enemic p7 = { 0 }; p7.posicio = Vector3{ 600, 4480 }; p7.velocitat = 2; p7.vida = true; pterodactilos.push_back(p7);
+    enemic p7 = { 0 }; p7.posicio = Vector3{ 800, 4480 }; p7.velocitat = 2; p7.vida = true; pterodactilos.push_back(p7);
     enemic p8 = { 0 }; p8.posicio = Vector3{ 600, 5210 }; p8.velocitat = 2; p8.vida = true; pterodactilos.push_back(p8);
     enemic p9 = { 0 }; p9.posicio = Vector3{ 600, 6000 }; p9.velocitat = 2; p9.vida = true; pterodactilos.push_back(p9);
     enemic p10 = { 0 }; p10.posicio = Vector3{ 500, 6580 }; p10.velocitat = 2; p10.vida = true; pterodactilos.push_back(p10);
@@ -298,7 +299,7 @@ int main(void)
 
 #define TILE_SIZE 80
 
-    int map[103][24] = {
+    int map[105][24] = {
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -306,7 +307,7 @@ int main(void)
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,15,10,0,0,3,3,3,3},
 {3,3,3,3,4,4,4,4,4,6,0,0,0,0,0,5,4,4,4,4,3,3,3,3},
 {3,3,3,3,1,1,1,1,8,0,0,0,0,0,0,0,7,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,0,0,0,0,0,0,0,0,0,7,1,1,3,3,3,3},
@@ -391,7 +392,9 @@ int main(void)
 {3,3,3,3,1,0,0,0,2,13,0,5,6,0,10,0,2,13,0,1,3,3,3,3},
 {3,3,3,3,1,0,0,0,2,13,0,0,0,0,2,0,2,13,0,1,3,3,3,3},
 {3,3,3,3,1,0,0,0,2,0,5,4,6,0,10,0,2,0,0,1,3,3,3,3},
-{3,3,3,3,1,0,0,0,2,0,0,0,0,0,2,0,2,0,15,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,2,0,0,0,0,0,2,0,2,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
+{3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,15,1,3,3,3,3},
 {3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
@@ -420,7 +423,7 @@ int main(void)
             if (tile == TILE_SOLID) { item.texture = blockSolidTerra; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
             else if (tile == TILE_BREAK) { item.texture = blockBreak; item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
             else if (tile == TILE_NEGRO) { item.texture = negro; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_PORTA) { item.texture = blockPorta; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_PORTA) { item.texture = blockPorta; item.type = BLOCK_SOLID; item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
             else if (tile == TILE_SOLID_HERBA) { item.texture = blockSolidHerba; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
             else if (tile == TILE_HERBA_R) { item.texture = blockHerbaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
             else if (tile == TILE_HERBA_L) { item.texture = blockHerbaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
@@ -433,8 +436,10 @@ int main(void)
             else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons; item.type = BLOCK_SOLID; item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
             else { item.texture = blockSolidTerra; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
 
+            item.tileID = tile;
             envItems.push_back(item);
             envItems.back().lifetime = 0.0f;
+            
         }
     }
 
@@ -625,7 +630,7 @@ int main(void)
                     player.speedY = 0;
                     player.velX = 0;
 
-                    Vector2 spawnPos = { camera.target.x, camera.target.y - 250 };
+                    Vector2 spawnPos = { camera.target.x+100, camera.target.y - 250 };
                     const float maxSearchDown = 600.0f;
                     bool foundSafeSpot = false;
 
@@ -668,6 +673,28 @@ int main(void)
             {
                 EnvItem* ei = &envItems[i];
                 if (!ei->active) continue;
+
+                if (ei->tileID == TILE_PORTA && CheckCollisionRecs(playerRect, ei->rect))
+                {
+                    StopMusicStream(gameMusic);
+                    PlayMusicStream(titleMusic);
+
+                    gameState = STATE_MENU;
+                    gameOver = false;
+                    player.lives = 3;
+                    player.alive = true;
+                    player.speedY = 0;
+                    player.velX = 0;
+                    player.coins = 0;
+                    player.deathAnim = false;
+                    player.position = Vector2{ 550, 200 };
+                    camera.target = Vector2{ 550, 200 };
+                    camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+                    envItems = originalEnvItems;
+                    for (int j = 0; j < (int)pterodactilos.size(); j++)
+                        pterodactilos[j].vida = true;
+                    break;
+                }
                 if (ei->collectible)
                 {
                     if (CheckCollisionRecs(playerRect, ei->rect))
