@@ -499,12 +499,9 @@ int main(void)
 
         // AUDIO - Transición: esperar sonido de inicio y arrancar música de juego
         if (levelStarting) {
-            levelStartTimer += GetFrameTime();
-            if (levelStartTimer >= 1.8f) {
-                gameState = STATE_MAP;   // <-- va al mapa, no al juego
-                levelStarting = false;
-                levelStartTimer = 0.0f;  // reutilizamos el timer para el mapa
-            }
+            gameState = STATE_MAP;        // va al mapa inmediatamente
+            levelStarting = false;
+            levelStartTimer = 0.0f;
         }
         if (gameOver)
         {
@@ -856,7 +853,7 @@ int main(void)
                 Vector2{ 0, 0 }, 0.0f, WHITE
             );
 
-            if (levelStartTimer >= 4.0f)
+            if (levelStartTimer >= 3.0f)
             {
                 levelStartTimer = 0.0f;
                 PlayMusicStream(gameMusic);
