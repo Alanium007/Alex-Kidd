@@ -1065,6 +1065,11 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
                 ei->lifetime = 8.0f;
                 continue;
             }
+
+            if (ei->tileID == TILE_INTERROGANT) {
+                PlaySound(coinBlockSound);
+            }
+
             if (ei->type == BLOCK_BREAKABLE) {
                 
                 if (ei->tileID == TILE_BREAK) {
