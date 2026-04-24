@@ -37,6 +37,8 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TILE_BOSSACOLLONS    13
 #define TILE_BOSSACOLLONSPETIT 14
 #define TILE_PORTA 15
+
+#define TILE_PEDRA 16
 #define TILE_SIZE 80
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
@@ -79,6 +81,9 @@ Texture2D blockBossaCollonsPetit;
 
 Texture2D MIAU;
 Texture2D negro;
+
+Texture2D pedra;
+Texture2D TendaFora;
 
 Texture2D mapImage;
 
@@ -191,7 +196,7 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
     Texture2D blockEstrella, Texture2D blockCalaveraGroc,
     Texture2D blockCalaveraRosa, Texture2D blockBossaCollons,
     Texture2D blockBossaCollonsPetit, Texture2D blockPorta,
-    Texture2D negro)
+    Texture2D negro, Texture2D pedra)
 {
     std::vector<EnvItem> items;
     for (int y = 0; y < rows; y++) {
@@ -206,6 +211,7 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
             if (tile == TILE_SOLID) { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_BREAK) { item.texture = blockBreak;           item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
             else if (tile == TILE_NEGRO) { item.texture = negro;                item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_PEDRA) { item.texture = pedra;                item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_PORTA) { item.texture = blockPorta;           item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
             else if (tile == TILE_SOLID_HERBA) { item.texture = blockSolidHerba;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_HERBA_R) { item.texture = blockHerbaR;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
@@ -279,7 +285,12 @@ int main(void)
     MIAU = LoadTexture("resources/Patricio.png");
     negro = LoadTexture("resources/Negro.png");
 
+    pedra = LoadTexture("resources/Tenda/Piedra.png");
+    TendaFora = LoadTexture("resources/Tenda/Tenda2.png");
+
     mapImage = LoadTexture("resources/mapa.png");
+
+
 
     MenuFondo = LoadTexture("resources/Fondo.png");
     MenuTítol = LoadTexture("resources/0.png");
@@ -517,103 +528,19 @@ int main(void)
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
- {3,3,3,3,0,0,0,0,0,0,0,0,0,0,1,3,4,10,0,0,3,3,3,3},
- {3,3,3,3,4,4,4,4,4,6,0,0,0,0,0,5,4,4,4,4,3,3,3,3},
- {3,3,3,3,1,1,1,1,8,0,0,0,0,0,0,0,7,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,0,0,0,0,0,0,0,0,0,7,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,10,0,0,5,4,4,4,6,0,0,0,7,1,3,3,3,3},
- {3,3,3,3,1,1,1,10,0,0,0,7,1,8,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,1,1,2,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,1,1,4,6,0,0,0,0,0,0,0,0,2,9,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,0,0,0,0,0,5,4,4,4,4,4,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,0,0,0,0,2,0,7,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,0,0,0,0,2,0,0,7,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,0,5,4,4,6,0,0,0,7,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,8,0,0,7,8,0,0,0,0,0,7,1,1,3,3,3,3},
- {3,3,3,3,1,1,8,0,0,0,0,0,0,0,0,0,0,0,7,1,3,3,3,3},
- {3,3,3,3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,10,1,3,3,3,3},
- {3,3,3,3,1,1,0,0,0,0,0,2,5,4,4,4,6,0,10,1,3,3,3,3},
- {3,3,3,3,1,10,0,0,0,0,0,2,0,7,1,8,2,0,0,1,3,3,3,3},
- {3,3,3,3,1,2,2,0,0,0,0,0,0,0,0,0,0,2,0,1,3,3,3,3},
- {3,3,3,3,1,4,6,0,0,0,0,0,0,0,0,0,0,0,2,1,3,3,3,3},
- {3,3,3,3,1,1,4,4,4,4,6,0,0,0,0,10,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,8,0,0,0,5,4,4,4,4,4,1,3,3,3,3},
- {3,3,3,3,1,1,1,10,2,0,0,0,0,0,7,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,2,0,0,0,0,0,0,0,7,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,8,0,2,0,0,0,0,0,0,0,7,1,1,1,3,3,3,3},
- {3,3,3,3,1,8,2,0,2,0,0,0,0,0,0,0,0,7,1,1,3,3,3,3},
- {3,3,3,3,1,0,2,10,0,2,2,0,0,0,0,0,0,0,1,1,3,3,3,3},
- {3,3,3,3,1,0,2,0,0,0,2,0,0,0,0,9,0,0,1,1,3,3,3,3},
- {3,3,3,3,1,0,10,0,0,0,10,10,5,4,4,6,0,0,1,1,3,3,3,3},
- {3,3,3,3,1,0,2,0,0,0,10,0,0,7,8,0,0,0,1,1,3,3,3,3},
- {3,3,3,3,1,0,5,4,4,4,6,0,0,0,0,0,0,0,10,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,2,2,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,5,4,4,4,4,4,4,1,3,3,3,3},
- {3,3,3,3,1,2,2,2,2,0,0,0,0,7,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,10,0,0,2,0,0,0,0,0,7,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,11,0,0,2,0,0,0,0,0,0,7,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,10,0,0,2,0,0,0,0,0,0,0,0,0,7,1,3,3,3,3},
- {3,3,3,3,1,4,4,4,4,4,4,6,0,0,0,0,0,0,2,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,8,0,0,0,0,0,0,0,2,0,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,8,0,0,0,0,0,0,0,2,0,0,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,0,0,0,0,5,4,4,4,6,0,0,1,3,3,3,3},
- {3,3,3,3,1,1,1,8,0,0,0,0,0,7,1,8,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,8,13,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,5,4,4,4,12,4,4,4,4,4,6,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,7,1,1,1,1,1,1,1,8,0,10,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,7,1,1,1,1,1,8,0,0,10,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,2,2,10,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,2,0,0,0,0,0,5,4,4,4,4,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,2,0,0,0,0,0,0,7,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,4,4,4,4,4,6,0,0,0,0,0,0,7,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,8,0,0,0,0,0,0,0,0,7,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,8,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,1,1,8,0,0,0,0,0,0,0,0,0,0,2,1,3,3,3,3},
- {3,3,3,3,1,10,2,0,0,0,0,0,13,0,0,0,0,2,0,1,3,3,3,3},
- {3,3,3,3,1,2,2,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,4,6,0,0,0,0,0,0,0,0,0,10,10,10,1,3,3,3,3},
- {3,3,3,3,1,8,0,0,0,0,0,0,0,0,0,0,2,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,2,0,2,1,3,3,3,3},
- {3,3,3,3,1,0,0,5,4,4,4,4,4,4,4,4,4,4,4,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,7,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,7,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,4,6,0,0,0,0,0,0,10,7,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,8,0,0,0,0,0,0,0,0,0,0,0,7,1,1,3,3,3,3},
- {3,3,3,3,1,10,0,0,0,0,0,0,0,0,0,0,0,0,7,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,5,4,4,6,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,5,4,4,6,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,10,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,5,6,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,13,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,13,0,0,0,0,0,0,0,0,0,0,0,10,1,3,3,3,3},
- {3,3,3,3,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,5,4,6,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,5,6,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,5,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,5,4,6,0,5,4,6,0,5,4,6,0,5,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,2,13,0,5,6,0,10,0,2,13,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,2,13,0,0,0,0,2,0,2,13,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,2,0,5,4,6,0,10,0,2,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,2,0,0,0,0,0,2,0,2,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,3,3,3},
- {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,15,1,3,3,3,3},
- {3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
- {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3}
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
  };
 
        
@@ -622,7 +549,7 @@ int main(void)
            blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
            blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
            blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-           blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro);
+           blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
 
        std::vector<EnvItem> originalEnvItems = envItems;
 
@@ -926,7 +853,7 @@ int main(void)
                             blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                             blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                             blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-                            blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro);
+                            blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                         originalEnvItems = envItems;
                         for (int j = 0; j < (int)pterodactilos.size(); j++)
                             pterodactilos[j].vida = true;
@@ -948,11 +875,11 @@ int main(void)
                         camera.target = Vector2{ 550, 200 };
                         camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
 
-                        envItems = BuildEnvItemsFromMap(map2, 105,
+                        envItems = BuildEnvItemsFromMap(map2, 20,
                             blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                             blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                             blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-                            blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro);
+                            blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                         originalEnvItems = envItems;
                         for (int j = 0; j < (int)pterodactilos.size(); j++)
                             pterodactilos[j].vida = true;
@@ -1004,7 +931,18 @@ int main(void)
             DrawTextureEx(nuvol, Vector2{ 200, -100 }, 0, 0.2f, WHITE);
             DrawTextureEx(nuvol, Vector2{ 700, 150 }, 0, 0.2f, WHITE);
             DrawTextureEx(nuvol, Vector2{ 950, 0 }, 0, 0.2f, WHITE);
+            if (currentLevel == 2)
+            {
+                DrawTexturePro(
+                    TendaFora,
+                    Rectangle{ 0, 0, (float)TendaFora.width, (float)TendaFora.height },
+                    Rectangle{ 1000, 450, 400, 350 },  // X, Y, ancho, alto que tú quieras
+                    Vector2{ 300, 150 }, 0.0f, WHITE
+                );
+            }
             DrawTextureEx(MIAU, Vector2{ petPosition.x - 40, petPosition.y - 85 }, 0, 1.0f, WHITE);
+            
+            
 
             for (int i = 0; i < (int)envItems.size(); i++)
             {
@@ -1123,7 +1061,7 @@ int main(void)
                         blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                         blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                         blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-                        blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro);
+                        blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                     originalEnvItems = envItems;
                 }
             }
