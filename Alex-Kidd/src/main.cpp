@@ -1319,7 +1319,7 @@ void EnemyHitPlayer(Player* player, enemic* pterodactil)
 void PlayerAttackEnemy(Player* player, enemic* ptero, int LeftOrRight)
 {
     if (!ptero->vida) return;
-    float punchWidth = 50, punchHeight = 40;
+    float punchWidth = 70, punchHeight = 40;
     float offsetX = (LeftOrRight == 0) ? 20 : -punchWidth;
     float offsetY = -60;
     Rectangle punchHitbox = { player->position.x + offsetX, player->position.y + offsetY, punchWidth, punchHeight };
