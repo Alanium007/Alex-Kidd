@@ -12,6 +12,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include <stdio.h>
 #include <vector>
 
+
 #define G 2000
 #define PLAYER_JUMP_SPD 1000.0f
 #define PLAYER_ACC 1000.0f
@@ -36,6 +37,9 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TILE_BOSSACOLLONS    13
 #define TILE_BOSSACOLLONSPETIT 14
 #define TILE_PORTA 15
+
+#define TILE_PEDRA 16
+#define TILE_SIZE 80
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
 
@@ -77,6 +81,9 @@ Texture2D blockBossaCollonsPetit;
 
 Texture2D MIAU;
 Texture2D negro;
+
+Texture2D pedra;
+Texture2D TendaFora;
 
 Texture2D mapImage;
 
@@ -181,6 +188,49 @@ void PlayerHitEnemy(Player* player, enemic* pterodactil, int LeftOrRight);
 void EnemyHitPlayer(Player* player, enemic* pterodactil);
 void PlayerAttackEnemy(Player* player, enemic* ptero, int LeftOrRight);
 
+std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
+    Texture2D blockSolidTerra, Texture2D blockBreak,
+    Texture2D blockTerraR, Texture2D blockTerraL,
+    Texture2D blockHerbaR, Texture2D blockHerbaL,
+    Texture2D blockSolidHerba, Texture2D blockInterrogant,
+    Texture2D blockEstrella, Texture2D blockCalaveraGroc,
+    Texture2D blockCalaveraRosa, Texture2D blockBossaCollons,
+    Texture2D blockBossaCollonsPetit, Texture2D blockPorta,
+    Texture2D negro, Texture2D pedra)
+{
+    std::vector<EnvItem> items;
+    for (int y = 0; y < rows; y++) {
+        for (int x = 0; x < 24; x++) {
+            int tile = map[y][x];
+            if (tile == 0) continue;
+            EnvItem item = { 0 };
+            item.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
+            item.blocking = 1;
+            item.active = true;
+            item.lifetime = 0.0f;
+            if (tile == TILE_SOLID) { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_BREAK) { item.texture = blockBreak;           item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
+            else if (tile == TILE_NEGRO) { item.texture = negro;                item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_PEDRA) { item.texture = pedra;                item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_PORTA) { item.texture = blockPorta;           item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+            else if (tile == TILE_SOLID_HERBA) { item.texture = blockSolidHerba;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_HERBA_R) { item.texture = blockHerbaR;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_HERBA_L) { item.texture = blockHerbaL;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_TERRA_R) { item.texture = blockTerraR;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_TERRA_L) { item.texture = blockTerraL;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_INTERROGANT) { item.texture = blockInterrogant;     item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
+            else if (tile == TILE_ESTRELLA) { item.texture = blockEstrella;        item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
+            else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons;    item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
+            else { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            item.tileID = tile;
+            items.push_back(item);
+        }
+    }
+    return items;
+}
+
 //------------------------------------------------------------------------------------
 // MAIN
 //------------------------------------------------------------------------------------
@@ -192,6 +242,7 @@ int main(void)
     float creditsTimer = 0.0f;
 
     GameState gameState = STATE_MENU;
+    int currentLevel = 1;
 
     InitWindow(screenWidth, screenHeight, "Alex Kidd");
     InitAudioDevice();
@@ -234,7 +285,12 @@ int main(void)
     MIAU = LoadTexture("resources/Patricio.png");
     negro = LoadTexture("resources/Negro.png");
 
+    pedra = LoadTexture("resources/Tenda/Piedra.png");
+    TendaFora = LoadTexture("resources/Tenda/Tenda2.png");
+
     mapImage = LoadTexture("resources/mapa.png");
+
+
 
     MenuFondo = LoadTexture("resources/Fondo.png");
     MenuTítol = LoadTexture("resources/0.png");
@@ -356,7 +412,6 @@ int main(void)
     player.alive = true;
     player.respawnTimer = 2.0f;
 
-#define TILE_SIZE 80
 
     int map[105][24] = {
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -366,7 +421,7 @@ int main(void)
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,3,3,3,3},
+{3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,15,10,0,0,3,3,3,3},
 {3,3,3,3,4,4,4,4,4,6,0,0,0,0,0,5,4,4,4,4,3,3,3,3},
 {3,3,3,3,1,1,1,1,8,0,0,0,0,0,0,0,7,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,0,0,0,0,0,0,0,0,0,7,1,1,3,3,3,3},
@@ -465,45 +520,38 @@ int main(void)
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3}
     };
 
-    std::vector<EnvItem> envItems;
+    int map2[105][24] = {
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+ {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+ };
 
-    for (int y = 0; y < 101; y++)
-    {
-        for (int x = 0; x < 24; x++)
-        {
-            int tile = map[y][x];
-            if (tile == 0) continue;
+       
 
-            EnvItem item = { 0 };
-            item.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
-            item.blocking = 1;
-            item.active = true;
+       std::vector<EnvItem> envItems = BuildEnvItemsFromMap(map, 105,
+           blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+           blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+           blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+           blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
 
-            if (tile == TILE_SOLID) { item.texture = blockSolidTerra; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_BREAK) { item.texture = blockBreak; item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
-            else if (tile == TILE_NEGRO) { item.texture = negro; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_PORTA) { item.texture = blockPorta; item.type = BLOCK_SOLID; item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
-            else if (tile == TILE_SOLID_HERBA) { item.texture = blockSolidHerba; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_HERBA_R) { item.texture = blockHerbaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_HERBA_L) { item.texture = blockHerbaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_TERRA_R) { item.texture = blockTerraR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_TERRA_L) { item.texture = blockTerraL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_INTERROGANT) { item.texture = blockInterrogant; item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
-            else if (tile == TILE_ESTRELLA) { item.texture = blockEstrella; item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
-            else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons; item.type = BLOCK_SOLID; item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
-            else { item.texture = blockSolidTerra; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-
-            item.tileID = tile;
-            envItems.push_back(item);
-            envItems.back().lifetime = 0.0f;
-            
-        }
-    }
-
-    int envItemsLength = sizeof(envItems) / sizeof(envItems[0]);
-    std::vector<EnvItem> originalEnvItems = envItems;
+       std::vector<EnvItem> originalEnvItems = envItems;
 
     Camera2D camera = { 0 };
     camera.target = player.position;
@@ -780,25 +828,62 @@ int main(void)
 
                 if (ei->tileID == TILE_PORTA && CheckCollisionRecs(playerRect, ei->rect))
                 {
-                    StopMusicStream(gameMusic);
-                    PlayMusicStream(titleMusic);
+                    currentLevel++;
 
-                    gameState = STATE_MENU;
-                    gameOver = false;
-                    player.lives = 3;
-                    menuImageTimer = 0.0f;
-                    menuImageIndex = 0;
-                    player.alive = true;
-                    player.speedY = 0;
-                    player.velX = 0;
-                    player.coins = 0;
-                    player.deathAnim = false;
-                    player.position = Vector2{ 550, 200 };
-                    camera.target = Vector2{ 550, 200 };
-                    camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
-                    envItems = originalEnvItems;
-                    for (int j = 0; j < (int)pterodactilos.size(); j++)
-                        pterodactilos[j].vida = true;
+                    if (currentLevel > 2)
+                    {
+                        // Ya no hay más niveles: volver al menú
+                        StopMusicStream(gameMusic);
+                        PlayMusicStream(titleMusic);
+                        gameState = STATE_MENU;
+                        gameOver = false;
+                        player.lives = 3;
+                        menuImageTimer = 0.0f;
+                        menuImageIndex = 0;
+                        currentLevel = 1;
+                        player.alive = true;
+                        player.speedY = 0;
+                        player.velX = 0;
+                        player.coins = 0;
+                        player.deathAnim = false;
+                        player.position = Vector2{ 550, 200 };
+                        camera.target = Vector2{ 550, 200 };
+                        camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+                        envItems = BuildEnvItemsFromMap(map, 105,
+                            blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                            blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                            blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                            blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                        originalEnvItems = envItems;
+                        for (int j = 0; j < (int)pterodactilos.size(); j++)
+                            pterodactilos[j].vida = true;
+                    }
+                    else
+                    {
+                        // Cargar nivel 2
+                        StopMusicStream(gameMusic);
+                        PlaySound(levelStartSound);
+                        levelStarting = true;
+                        levelStartTimer = 0.0f;
+                        gameState = STATE_MAP;
+
+                        player.alive = true;
+                        player.speedY = 0;
+                        player.velX = 0;
+                        player.deathAnim = false;
+                        player.position = Vector2{ 550, 200 };
+                        camera.target = Vector2{ 550, 200 };
+                        camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+
+                        envItems = BuildEnvItemsFromMap(map2, 20,
+                            blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                            blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                            blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                            blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                        originalEnvItems = envItems;
+                        for (int j = 0; j < (int)pterodactilos.size(); j++)
+                            pterodactilos[j].vida = true;
+                    }
                     break;
                 }
                 if (ei->collectible)
@@ -846,7 +931,18 @@ int main(void)
             DrawTextureEx(nuvol, Vector2{ 200, -100 }, 0, 0.2f, WHITE);
             DrawTextureEx(nuvol, Vector2{ 700, 150 }, 0, 0.2f, WHITE);
             DrawTextureEx(nuvol, Vector2{ 950, 0 }, 0, 0.2f, WHITE);
+            if (currentLevel == 2)
+            {
+                DrawTexturePro(
+                    TendaFora,
+                    Rectangle{ 0, 0, (float)TendaFora.width, (float)TendaFora.height },
+                    Rectangle{ 1000, 450, 400, 350 },  // X, Y, ancho, alto que tú quieras
+                    Vector2{ 300, 150 }, 0.0f, WHITE
+                );
+            }
             DrawTextureEx(MIAU, Vector2{ petPosition.x - 40, petPosition.y - 85 }, 0, 1.0f, WHITE);
+            
+            
 
             for (int i = 0; i < (int)envItems.size(); i++)
             {
@@ -959,6 +1055,14 @@ int main(void)
                     envItems = originalEnvItems;
                     for (int i = 0; i < (int)pterodactilos.size(); i++)
                         pterodactilos[i].vida = true;
+
+                    currentLevel = 1;
+                    envItems = BuildEnvItemsFromMap(map, 105,
+                        blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                        blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                        blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                        blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                    originalEnvItems = envItems;
                 }
             }
         }
@@ -1215,7 +1319,7 @@ void EnemyHitPlayer(Player* player, enemic* pterodactil)
 void PlayerAttackEnemy(Player* player, enemic* ptero, int LeftOrRight)
 {
     if (!ptero->vida) return;
-    float punchWidth = 50, punchHeight = 40;
+    float punchWidth = 70, punchHeight = 40;
     float offsetX = (LeftOrRight == 0) ? 20 : -punchWidth;
     float offsetY = -60;
     Rectangle punchHitbox = { player->position.x + offsetX, player->position.y + offsetY, punchWidth, punchHeight };
