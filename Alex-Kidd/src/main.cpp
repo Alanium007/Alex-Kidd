@@ -39,6 +39,8 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TILE_PORTA 15
 
 #define TILE_PEDRA 16
+#define TILE_WARP 17
+
 #define TILE_SIZE 80
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
@@ -84,6 +86,7 @@ Texture2D negro;
 
 Texture2D pedra;
 Texture2D TendaFora;
+Texture2D FondoTenda;
 
 Texture2D mapImage;
 
@@ -203,6 +206,16 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
         for (int x = 0; x < 24; x++) {
             int tile = map[y][x];
             if (tile == 0) continue;
+            if (tile == TILE_WARP) {  // <-- añade esto AQUÍ, antes de crear el item
+                EnvItem warp = { 0 };
+                warp.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
+                warp.blocking = 0;
+                warp.active = true;
+                warp.tileID = TILE_WARP;
+                warp.texture = { 0 };  // textura vacía, nunca se dibuja
+                items.push_back(warp);
+                continue;  // salta todo lo demás
+            }
             EnvItem item = { 0 };
             item.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
             item.blocking = 1;
@@ -222,6 +235,7 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
             else if (tile == TILE_ESTRELLA) { item.texture = blockEstrella;        item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
             else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+            else if (tile == TILE_WARP) { item.texture = blockPorta;   item.type = BLOCK_SOLID;  item.blocking = 0;    item.collectible = false;item.drop = DROP_NONE;}
             else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons;    item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
             else { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             item.tileID = tile;
@@ -527,8 +541,8 @@ int main(void)
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
- {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
- {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,17,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,17,0,0,0,0,0,0,0,15,3,3,3,3},
  {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
  {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
  {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
@@ -886,6 +900,78 @@ int main(void)
                     }
                     break;
                 }
+                // Detección del bloque WARP con tecla W
+                if (ei->tileID == TILE_WARP && ei->active)
+                {
+                    // Amplía ligeramente el rect del jugador para detectar "estar delante"
+                    Rectangle warpZone = {
+                        ei->rect.x - 20,
+                        ei->rect.y - 20,
+                        ei->rect.width + 40,
+                        ei->rect.height + 40
+                    };
+
+                    if (CheckCollisionRecs(playerRect, warpZone) && IsKeyPressed(KEY_W))
+                    {
+                        currentLevel++;
+
+                        if (currentLevel > 2)
+                        {
+                            // Volver al menú (copia el bloque que ya tienes para este caso)
+                            StopMusicStream(gameMusic);
+                            PlayMusicStream(titleMusic);
+                            gameState = STATE_MENU;
+                            gameOver = false;
+                            player.lives = 3;
+                            menuImageTimer = 0.0f;
+                            menuImageIndex = 0;
+                            currentLevel = 1;
+                            player.alive = true;
+                            player.speedY = 0;
+                            player.velX = 0;
+                            player.coins = 0;
+                            player.deathAnim = false;
+                            player.position = Vector2{ 550, 200 };
+                            camera.target = Vector2{ 550, 200 };
+                            camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+                            envItems = BuildEnvItemsFromMap(map, 105,
+                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                            originalEnvItems = envItems;
+                            for (int j = 0; j < (int)pterodactilos.size(); j++)
+                                pterodactilos[j].vida = true;
+                        }
+                        else
+                        {
+                            // Cargar nivel 2 (igual que el bloque TILE_PORTA)
+                            StopMusicStream(gameMusic);
+                            PlaySound(levelStartSound);
+                            levelStarting = true;
+                            levelStartTimer = 0.0f;
+                            gameState = STATE_MAP;
+
+                            player.alive = true;
+                            player.speedY = 0;
+                            player.velX = 0;
+                            player.deathAnim = false;
+                            player.position = Vector2{ 550, 200 };
+                            camera.target = Vector2{ 550, 200 };
+                            camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+
+                            envItems = BuildEnvItemsFromMap(map2, 20,
+                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                            originalEnvItems = envItems;
+                            for (int j = 0; j < (int)pterodactilos.size(); j++)
+                                pterodactilos[j].vida = true;
+                        }
+                        break;
+                    }
+                }
                 if (ei->collectible)
                 {
                     if (CheckCollisionRecs(playerRect, ei->rect))
@@ -942,7 +1028,17 @@ int main(void)
             }
             DrawTextureEx(MIAU, Vector2{ petPosition.x - 40, petPosition.y - 85 }, 0, 1.0f, WHITE);
             
-            
+            for (int i = 0; i < (int)envItems.size(); i++)
+            {
+                if (!envItems[i].active) continue;
+                if (envItems[i].tileID == TILE_WARP) continue;  // <-- esta línea
+                DrawTexturePro(
+                    envItems[i].texture,
+                    Rectangle{ 0, 0, (float)envItems[i].texture.width, (float)envItems[i].texture.height },
+                    envItems[i].rect,
+                    Vector2{ 0, 0 }, 0.0f, WHITE
+                );
+            }
 
             for (int i = 0; i < (int)envItems.size(); i++)
             {
