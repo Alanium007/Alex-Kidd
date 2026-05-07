@@ -41,6 +41,9 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TILE_PEDRA 16
 #define TILE_WARP 17
 
+#define TILE_SHOP_ENTER 18   // Entrar a la tienda (activa con W)
+#define TILE_SHOP_EXIT  19   // Salir de la tienda (activa con W)
+
 #define TILE_SIZE 80
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
@@ -235,8 +238,10 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
             else if (tile == TILE_ESTRELLA) { item.texture = blockEstrella;        item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
             else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_WARP) { item.texture = blockPorta;   item.type = BLOCK_SOLID;  item.blocking = 0;    item.collectible = false;item.drop = DROP_NONE;}
+            else if (tile == TILE_WARP) { item.texture = blockPorta;   item.type = BLOCK_SOLID;  item.blocking = 0;    item.collectible = false; item.drop = DROP_NONE; }
             else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons;    item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
+            else if (tile == TILE_SHOP_ENTER) { item.texture;        item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+            else if (tile == TILE_SHOP_EXIT) { item.texture = blockPorta;        item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
             else { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             item.tileID = tile;
             items.push_back(item);
@@ -261,7 +266,7 @@ int main(void)
     InitWindow(screenWidth, screenHeight, "Alex Kidd");
     InitAudioDevice();
 
-    
+
 
     background = LoadTexture("resources/Alex-Kidd-assets.png");
     nuvol = LoadTexture("resources/nuvol.png");
@@ -311,7 +316,7 @@ int main(void)
     Menu1 = LoadTexture("resources/1.png");
     Menu2 = LoadTexture("resources/2.png");
     Menu3 = LoadTexture("resources/3.png");
-    Menu4= LoadTexture("resources/4.png");
+    Menu4 = LoadTexture("resources/4.png");
     Menu5 = LoadTexture("resources/5.png");
     Menu6 = LoadTexture("resources/6.png");
 
@@ -357,7 +362,7 @@ int main(void)
     SetMusicVolume(gameOverMusic, 0.6f);
 
 
-   
+
 
     Rectangle frameRecR = { 0.0f, 0.0f, ((float)AlexKiddWalkR.width / 4), ((float)AlexKiddWalkR.height) };
     Rectangle frameRecL = { 0.0f, 0.0f, ((float)AlexKiddWalkL.width / 4), ((float)AlexKiddWalkL.height) };
@@ -404,7 +409,7 @@ int main(void)
     player.alive = true;
     player.respawnTimer = 2.0f;
 
-    
+
 
     Vector2 petPosition = player.position;
 
@@ -541,8 +546,8 @@ int main(void)
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
- {3,3,3,3,0,0,0,0,0,0,0,17,0,0,0,0,0,0,0,0,3,3,3,3},
- {3,3,3,3,0,0,0,0,0,0,0,17,0,0,0,0,0,0,0,15,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,18,0,0,0,0,0,0,0,0,3,3,3,3},
+ {3,3,3,3,0,0,0,0,0,0,0,18,0,0,0,0,0,0,0,15,3,3,3,3},
  {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
  {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
  {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
@@ -555,17 +560,31 @@ int main(void)
  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
- };
+    };
 
-       
 
-       std::vector<EnvItem> envItems = BuildEnvItemsFromMap(map, 105,
-           blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
-           blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
-           blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-           blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+    int map3[11][24] = {
+         {3, 3, 3, 3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16, 3, 3, 3, 3}, // techo
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3},
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // spawn
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // estanterías
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // bolsas colectibles
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3},
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // mostrador
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // ?-blocks
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // plataformas
+         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // salida
+         {3 ,3 ,3 ,3 ,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16, 3, 3, 3, 3}  // suelo
+    };
 
-       std::vector<EnvItem> originalEnvItems = envItems;
+
+    std::vector<EnvItem> envItems = BuildEnvItemsFromMap(map, 105,
+        blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+        blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+        blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+        blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+
+    std::vector<EnvItem> originalEnvItems = envItems;
 
     Camera2D camera = { 0 };
     camera.target = player.position;
@@ -608,8 +627,8 @@ int main(void)
                 gameState = STATE_MAP;
             }
         }
-        
-        
+
+
         // AUDIO - Actualizar stream según estado
         if (gameState == STATE_MENU)
         {
@@ -643,7 +662,7 @@ int main(void)
                     Vector2{ 0, 0 }, 0.0f, WHITE);
             }
 
-           
+
         }
         else if (gameState == STATE_PLAYING) {
             UpdateMusicStream(gameMusic);
@@ -660,13 +679,14 @@ int main(void)
             creditsTimer = 0.0f;
         }
 
-       
+
         if (gameOver)
         {
             UpdateMusicStream(gameOverMusic);
         }
 
-        int cameraOption = 5;
+        // camera option
+        int cameraOption = (currentLevel == 3) ? 1 : 5;
 
         // Animaciones
         if (attacking)
@@ -796,7 +816,7 @@ int main(void)
 
                     PlayMusicStream(gameMusic);
 
-                    Vector2 spawnPos = { camera.target.x+100, camera.target.y - 250 };
+                    Vector2 spawnPos = { camera.target.x + 100, camera.target.y - 250 };
                     const float maxSearchDown = 600.0f;
                     bool foundSafeSpot = false;
 
@@ -844,7 +864,7 @@ int main(void)
                 {
                     currentLevel++;
 
-                    if (currentLevel > 2)
+                    if (currentLevel > 3)   // Cambiado de 2 a 3
                     {
                         // Ya no hay más niveles: volver al menú
                         StopMusicStream(gameMusic);
@@ -900,10 +920,9 @@ int main(void)
                     }
                     break;
                 }
-                // Detección del bloque WARP con tecla W
-                if (ei->tileID == TILE_WARP && ei->active)
+                // Detección de la tienda (entrada/salida) con tecla W
+                if ((ei->tileID == TILE_SHOP_ENTER || ei->tileID == TILE_SHOP_EXIT) && ei->active)
                 {
-                    // Amplía ligeramente el rect del jugador para detectar "estar delante"
                     Rectangle warpZone = {
                         ei->rect.x - 20,
                         ei->rect.y - 20,
@@ -913,39 +932,11 @@ int main(void)
 
                     if (CheckCollisionRecs(playerRect, warpZone) && IsKeyPressed(KEY_W))
                     {
-                        currentLevel++;
+                        if (ei->tileID == TILE_SHOP_ENTER)
+                        {
+                            // Entrar a la tienda (map3)
+                            currentLevel = 3;
 
-                        if (currentLevel > 2)
-                        {
-                            // Volver al menú (copia el bloque que ya tienes para este caso)
-                            StopMusicStream(gameMusic);
-                            PlayMusicStream(titleMusic);
-                            gameState = STATE_MENU;
-                            gameOver = false;
-                            player.lives = 3;
-                            menuImageTimer = 0.0f;
-                            menuImageIndex = 0;
-                            currentLevel = 1;
-                            player.alive = true;
-                            player.speedY = 0;
-                            player.velX = 0;
-                            player.coins = 0;
-                            player.deathAnim = false;
-                            player.position = Vector2{ 550, 200 };
-                            camera.target = Vector2{ 550, 200 };
-                            camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
-                            envItems = BuildEnvItemsFromMap(map, 105,
-                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
-                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
-                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
-                            originalEnvItems = envItems;
-                            for (int j = 0; j < (int)pterodactilos.size(); j++)
-                                pterodactilos[j].vida = true;
-                        }
-                        else
-                        {
-                            // Cargar nivel 2 (igual que el bloque TILE_PORTA)
                             StopMusicStream(gameMusic);
                             PlaySound(levelStartSound);
                             levelStarting = true;
@@ -956,8 +947,36 @@ int main(void)
                             player.speedY = 0;
                             player.velX = 0;
                             player.deathAnim = false;
-                            player.position = Vector2{ 550, 200 };
-                            camera.target = Vector2{ 550, 200 };
+                            player.position = Vector2{ 200, 200 };   // Ajusta si es necesario
+                            camera.target = Vector2{ 200, 200 };
+                            camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+
+                            envItems = BuildEnvItemsFromMap(map3, 11,
+                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                            originalEnvItems = envItems;
+                            for (int j = 0; j < (int)pterodactilos.size(); j++)
+                                pterodactilos[j].vida = true;
+                        }
+                        else if (ei->tileID == TILE_SHOP_EXIT)
+                        {
+                            // Salir de la tienda (volver a map2)
+                            currentLevel = 2;
+
+                            StopMusicStream(gameMusic);
+                            PlaySound(levelStartSound);
+                            levelStarting = true;
+                            levelStartTimer = 0.0f;
+                            gameState = STATE_MAP;
+
+                            player.alive = true;
+                            player.speedY = 0;
+                            player.velX = 0;
+                            player.deathAnim = false;
+                            player.position = Vector2{ 1000, 400 };   // Cerca de la tienda
+                            camera.target = Vector2{ 1000, 400 };
                             camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
 
                             envItems = BuildEnvItemsFromMap(map2, 20,
@@ -972,6 +991,7 @@ int main(void)
                         break;
                     }
                 }
+                // Recolectar objetos (bolsas)
                 if (ei->collectible)
                 {
                     if (CheckCollisionRecs(playerRect, ei->rect))
@@ -1022,27 +1042,16 @@ int main(void)
                 DrawTexturePro(
                     TendaFora,
                     Rectangle{ 0, 0, (float)TendaFora.width, (float)TendaFora.height },
-                    Rectangle{ 1000, 450, 400, 350 },  // X, Y, ancho, alto que tú quieras
+                    Rectangle{ 1000, 450, 400, 350 },
                     Vector2{ 300, 150 }, 0.0f, WHITE
                 );
             }
             DrawTextureEx(MIAU, Vector2{ petPosition.x - 40, petPosition.y - 85 }, 0, 1.0f, WHITE);
-            
-            for (int i = 0; i < (int)envItems.size(); i++)
-            {
-                if (!envItems[i].active) continue;
-                if (envItems[i].tileID == TILE_WARP) continue;  // <-- esta línea
-                DrawTexturePro(
-                    envItems[i].texture,
-                    Rectangle{ 0, 0, (float)envItems[i].texture.width, (float)envItems[i].texture.height },
-                    envItems[i].rect,
-                    Vector2{ 0, 0 }, 0.0f, WHITE
-                );
-            }
 
             for (int i = 0; i < (int)envItems.size(); i++)
             {
                 if (!envItems[i].active) continue;
+                if (envItems[i].tileID == TILE_WARP) continue;  // oculta los viejos warps invisibles
                 DrawTexturePro(
                     envItems[i].texture,
                     Rectangle{ 0, 0, (float)envItems[i].texture.width, (float)envItems[i].texture.height },
@@ -1123,8 +1132,6 @@ int main(void)
                     Vector2{ 0, 0 }, 0.0f, WHITE
                 );
 
-                
-
                 if (IsKeyPressed(KEY_R))
                 {
                     // AUDIO - Volver a música de menú
@@ -1192,9 +1199,7 @@ int main(void)
                 Vector2{ 0, 0 }, 0.0f, WHITE
             );
         }
-        // MENÚ
-        
-    
+
         EndDrawing();
     }
 
@@ -1230,7 +1235,7 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     if (IsKeyPressed(KEY_SPACE) && player->canJump && !IsKeyDown(KEY_S))
     {
         player->speedY = -PLAYER_JUMP_SPD;
-        PlaySound(jumpSound); // AUDIO
+        PlaySound(jumpSound);
         player->canJump = false;
         player->isJumping = true;
         player->jumpTime = 0;
@@ -1340,7 +1345,7 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
             if (ei->drop == DROP_STAR && ei->texture.id == blockEstrella.id)
             {
                 PlaySound(coinBlockSound);
-                
+
                 bool esGran = GetRandomValue(0, 1) == 0;
                 if (esGran) { ei->texture = blockBossaCollons; }
                 else { ei->texture = blockBossaCollonsPetit; }
@@ -1358,11 +1363,11 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
             }
 
             if (ei->type == BLOCK_BREAKABLE) {
-                
+
                 if (ei->tileID == TILE_BREAK) {
                     PlaySound(blockBreakSound);
                 }
-                
+
                 ei->active = false;
             }
         }
