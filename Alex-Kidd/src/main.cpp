@@ -5,6 +5,7 @@ Use this as a starting point or replace it with your code.
 
 by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
+Modified by: Alan, Ian, Yarley, Lluc
 */
 
 #include "raylib.h"
@@ -44,9 +45,24 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TILE_SHOP_ENTER 18   // Entrar a la tienda (activa con W)
 #define TILE_SHOP_EXIT  19   // Salir de la tienda (activa con W)
 
+// Tiles de cueva (nivel de cuevas)
+#define TILE_TERRA_COVA      20
+#define TILE_TERRA_COVA_L    21
+#define TILE_TERRA_COVA_R    22
+#define TILE_TRIANGLE_COVA_L 23
+#define TILE_TRIANGLE_COVA_R 24
+#define TILE_SOLID_CAVE1     25
+#define TILE_SOLID_CAVE2     26
+#define TILE_ESTALAGMITA_L   27
+#define TILE_ESTALAGMITA_R   28
+#define TILE_BREAK_CAVE      29
+
+
 #define TILE_SIZE 80
 
 #define BLAU  CLITERAL(Color){8, 9, 250}
+
+#define LEVEL_SHOP 10   // índice especial para la tienda
 
 //----------------------------------------------------------------------------------
 // TEXTURES
@@ -83,6 +99,18 @@ Texture2D blockCalaveraGroc;
 Texture2D blockCalaveraRosa;
 Texture2D blockBossaCollons;
 Texture2D blockBossaCollonsPetit;
+
+// Texturas de la cueva
+Texture2D terraCova;
+Texture2D terraCovaL;
+Texture2D terraCovaR;
+Texture2D triangleCovaL;
+Texture2D triangleCovaR;
+Texture2D bloqueSolidoCueva1;
+Texture2D bloqueSolidoCueva2;
+Texture2D estalagmitaL;
+Texture2D estalagmitaR;
+Texture2D bloqueRompibleCueva;
 
 Texture2D MIAU;
 Texture2D negro;
@@ -209,15 +237,15 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
         for (int x = 0; x < 24; x++) {
             int tile = map[y][x];
             if (tile == 0) continue;
-            if (tile == TILE_WARP) {  // <-- añade esto AQUÍ, antes de crear el item
+            if (tile == TILE_WARP) {
                 EnvItem warp = { 0 };
                 warp.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
                 warp.blocking = 0;
                 warp.active = true;
                 warp.tileID = TILE_WARP;
-                warp.texture = { 0 };  // textura vacía, nunca se dibuja
+                warp.texture = { 0 };
                 items.push_back(warp);
-                continue;  // salta todo lo demás
+                continue;
             }
             EnvItem item = { 0 };
             item.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
@@ -238,13 +266,23 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
             else if (tile == TILE_ESTRELLA) { item.texture = blockEstrella;        item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
             else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_WARP) { item.texture = blockPorta;   item.type = BLOCK_SOLID;  item.blocking = 0;    item.collectible = false; item.drop = DROP_NONE; }
             else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons;    item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
-            else if (tile == TILE_SHOP_ENTER) { item.texture;        item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
-            else if (tile == TILE_SHOP_EXIT) { item.texture = blockPorta;        item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+            else if (tile == TILE_SHOP_ENTER) { item.texture = blockPorta;          item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+            else if (tile == TILE_SHOP_EXIT) { item.texture = blockPorta;           item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+            else if (tile == TILE_TERRA_COVA) { item.texture = terraCova; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_TERRA_COVA_L) { item.texture = terraCovaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_TERRA_COVA_R) { item.texture = terraCovaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_TRIANGLE_COVA_L) { item.texture = triangleCovaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_TRIANGLE_COVA_R) { item.texture = triangleCovaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_SOLID_CAVE1) { item.texture = bloqueSolidoCueva1; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_SOLID_CAVE2) { item.texture = bloqueSolidoCueva2; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_ESTALAGMITA_L) { item.texture = estalagmitaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_ESTALAGMITA_R) { item.texture = estalagmitaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+            else if (tile == TILE_BREAK_CAVE) { item.texture = bloqueRompibleCueva; item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
             else { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             item.tileID = tile;
             items.push_back(item);
+
         }
     }
     return items;
@@ -262,6 +300,7 @@ int main(void)
 
     GameState gameState = STATE_MENU;
     int currentLevel = 1;
+    int previousLevel = 1;  // para recordar desde qué nivel se entró a la tienda
 
     InitWindow(screenWidth, screenHeight, "Alex Kidd");
     InitAudioDevice();
@@ -301,6 +340,17 @@ int main(void)
     blockBossaCollonsPetit = LoadTexture("resources/bossadecollonspetit.png");
     blockPorta = LoadTexture("resources/Puerta.png");
 
+    terraCova = LoadTexture("resources/terraCova.png");
+    terraCovaL = LoadTexture("resources/terraCovaL.png");
+    terraCovaR = LoadTexture("resources/terraCovaR.png");
+    triangleCovaL = LoadTexture("resources/triangleCovaL.png");
+    triangleCovaR = LoadTexture("resources/triangleCovaR.png");
+    bloqueSolidoCueva1 = LoadTexture("resources/bloqueSolidoCueva1.png");
+    bloqueSolidoCueva2 = LoadTexture("resources/bloqueSolidoCueva2.png");
+    estalagmitaL = LoadTexture("resources/estalagmitaL.png");
+    estalagmitaR = LoadTexture("resources/estalagmitaR.png");
+    bloqueRompibleCueva = LoadTexture("resources/bloqueRompibleCueva.png");
+
     MIAU = LoadTexture("resources/Patricio.png");
     negro = LoadTexture("resources/Negro.png");
 
@@ -326,7 +376,7 @@ int main(void)
 
 
 
-    // AUDIO - Cargar
+    // AUDIO
     titleMusic = LoadMusicStream("resources/TitleScreen.wav");
     titleMusic.looping = false;
     SetMusicVolume(titleMusic, 0.4f);
@@ -387,7 +437,6 @@ int main(void)
     int attackTimer = 0;
     int FramesPuny = 0;
 
-    // AUDIO - Control de transición
     bool levelStarting = false;
     float levelStartTimer = 0.0f;
 
@@ -408,8 +457,6 @@ int main(void)
     player.spawn = player.position;
     player.alive = true;
     player.respawnTimer = 2.0f;
-
-
 
     Vector2 petPosition = player.position;
 
@@ -562,21 +609,37 @@ int main(void)
  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };
 
-
-    int map3[11][24] = {
-         {3, 3, 3, 3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16, 3, 3, 3, 3}, // techo
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3},
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // spawn
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // estanterías
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // bolsas colectibles
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3},
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // mostrador
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // ?-blocks
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // plataformas
-         {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3}, // salida
-         {3 ,3 ,3 ,3 ,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16, 3, 3, 3, 3}  // suelo
+    // MAPA DE LA TIENDA (level especial)
+    int map3[12][24] = {
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,19,3,3,3,3},
+         {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+         {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3}
     };
 
+    // ----- NUEVO NIVEL DEMO (plantilla para el siguiente nivel) -----
+    int map4[12][24] = {   
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,3,3,3,3},  // puerta de salida (siguiente nivel o fin)
+        {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
+        {20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20},
+        {20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20}
+    };
 
     std::vector<EnvItem> envItems = BuildEnvItemsFromMap(map, 105,
         blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
@@ -611,7 +674,7 @@ int main(void)
     float gameOverTimer = 0.0f;
     // Variables animación menú
     float menuImageTimer = 0.0f;
-    int menuImageIndex = 0;  // 0 = solo fondo+título, 1-6 = imágenes sucesivas
+    int menuImageIndex = 0;
     bool mostrarInventari = false;
 
     while (!WindowShouldClose())
@@ -628,12 +691,10 @@ int main(void)
             }
         }
 
-
-        // AUDIO - Actualizar stream según estado
+        // AUDIO
         if (gameState == STATE_MENU)
         {
             UpdateMusicStream(titleMusic);
-            // Avanzar animación
             if (menuImageIndex < 6) {
                 menuImageTimer += GetFrameTime();
                 if (menuImageTimer >= 0.5f) {
@@ -642,7 +703,6 @@ int main(void)
                 }
             }
 
-            // Fondo y título siempre visibles desde el inicio
             DrawTexturePro(MenuFondo,
                 Rectangle{ 0, 0, (float)MenuFondo.width, (float)MenuFondo.height },
                 Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
@@ -653,7 +713,6 @@ int main(void)
                 Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
                 Vector2{ 0, 0 }, 0.0f, WHITE);
 
-            // Imágenes que van apareciendo cada 0.5s
             Texture2D menuImages[] = { Menu1, Menu2, Menu3, Menu4, Menu5, Menu6 };
             for (int i = 0; i < menuImageIndex; i++) {
                 DrawTexturePro(menuImages[i],
@@ -661,8 +720,6 @@ int main(void)
                     Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
                     Vector2{ 0, 0 }, 0.0f, WHITE);
             }
-
-
         }
         else if (gameState == STATE_PLAYING) {
             UpdateMusicStream(gameMusic);
@@ -672,21 +729,20 @@ int main(void)
             ToggleFullscreen();
         }
 
-        // MENU: detectar ENTER y arrancar transición de audio
         if (gameState == STATE_MENU && IsKeyPressed(KEY_ENTER)) {
             StopMusicStream(titleMusic);
             gameState = STATE_CREDITS;
             creditsTimer = 0.0f;
         }
 
-
         if (gameOver)
         {
             UpdateMusicStream(gameOverMusic);
         }
 
-        // camera option
-        int cameraOption = (currentLevel == 3) ? 1 : 5;
+        // Selección de cámara según nivel (el nivel 3 usa la cámara centrada, etc.)
+        if (currentLevel == 3) cameraOption = 1;
+        else cameraOption = 5;
 
         // Animaciones
         if (attacking)
@@ -855,46 +911,53 @@ int main(void)
 
             Rectangle playerRect = { player.position.x - 20, player.position.y - 80, 40, 80 };
 
+            // ----- TRANSICIONES ENTRE NIVELES Y TIENDA -----
             for (int i = 0; i < (int)envItems.size(); i++)
             {
                 EnvItem* ei = &envItems[i];
                 if (!ei->active) continue;
 
+                // --- PUERTA NORMAL (avanza de nivel) ---
                 if (ei->tileID == TILE_PORTA && CheckCollisionRecs(playerRect, ei->rect))
                 {
-                    currentLevel++;
+                    // Solo avanzamos si no estamos en la tienda (la tienda tiene su propia salida)
+                    if (currentLevel != LEVEL_SHOP)
+                    {
+                        // Incrementar nivel normal (1->2->3->...)
+                        currentLevel++;
 
-                    if (currentLevel > 3)   // Cambiado de 2 a 3
-                    {
-                        // Ya no hay más niveles: volver al menú
-                        StopMusicStream(gameMusic);
-                        PlayMusicStream(titleMusic);
-                        gameState = STATE_MENU;
-                        gameOver = false;
-                        player.lives = 3;
-                        menuImageTimer = 0.0f;
-                        menuImageIndex = 0;
-                        currentLevel = 1;
-                        player.alive = true;
-                        player.speedY = 0;
-                        player.velX = 0;
-                        player.coins = 0;
-                        player.deathAnim = false;
-                        player.position = Vector2{ 550, 200 };
-                        camera.target = Vector2{ 550, 200 };
-                        camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
-                        envItems = BuildEnvItemsFromMap(map, 105,
-                            blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
-                            blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
-                            blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-                            blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
-                        originalEnvItems = envItems;
-                        for (int j = 0; j < (int)pterodactilos.size(); j++)
-                            pterodactilos[j].vida = true;
-                    }
-                    else
-                    {
-                        // Cargar nivel 2
+                        // Si superamos el nivel 3 (demo) mostramos créditos y volvemos al menú
+                        if (currentLevel > 3)
+                        {
+                            StopMusicStream(gameMusic);
+                            PlayMusicStream(titleMusic);
+                            gameState = STATE_MENU;
+                            gameOver = false;
+                            player.lives = 3;
+                            menuImageTimer = 0.0f;
+                            menuImageIndex = 0;
+                            currentLevel = 1;
+                            player.alive = true;
+                            player.speedY = 0;
+                            player.velX = 0;
+                            player.coins = 0;
+                            player.deathAnim = false;
+                            player.position = Vector2{ 550, 200 };
+                            camera.target = Vector2{ 550, 200 };
+                            camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+                            // Recargar nivel 1
+                            envItems = BuildEnvItemsFromMap(map, 105,
+                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                            originalEnvItems = envItems;
+                            for (int j = 0; j < (int)pterodactilos.size(); j++)
+                                pterodactilos[j].vida = true;
+                            break;
+                        }
+
+                        // Cargar el siguiente nivel según el número
                         StopMusicStream(gameMusic);
                         PlaySound(levelStartSound);
                         levelStarting = true;
@@ -905,11 +968,63 @@ int main(void)
                         player.speedY = 0;
                         player.velX = 0;
                         player.deathAnim = false;
-                        player.position = Vector2{ 550, 200 };
-                        camera.target = Vector2{ 550, 200 };
+                        // Posiciones iniciales de cada nivel
+                        if (currentLevel == 2) {
+                            player.position = Vector2{ 550, 200 };
+                            camera.target = Vector2{ 550, 200 };
+                        }
+                        else if (currentLevel == 3) {
+                            player.position = Vector2{ 200, 200 };
+                            camera.target = Vector2{ 200, 200 };
+                        }
                         camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
 
-                        envItems = BuildEnvItemsFromMap(map2, 20,
+                        // Construir el mapa correspondiente
+                        if (currentLevel == 2) {
+                            envItems = BuildEnvItemsFromMap(map2, 20,
+                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                        }
+                        else if (currentLevel == 3) {
+                            envItems = BuildEnvItemsFromMap(map4, 20,
+                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                        }
+                        originalEnvItems = envItems;
+                        for (int j = 0; j < (int)pterodactilos.size(); j++)
+                            pterodactilos[j].vida = true;
+                        break;
+                    }
+                }
+
+                // --- ENTRAR A LA TIENDA (solo disponible en nivel 2, por ejemplo) ---
+                if (ei->tileID == TILE_SHOP_ENTER && ei->active && CheckCollisionRecs(playerRect, ei->rect) && IsKeyPressed(KEY_W))
+                {
+                    if (currentLevel != LEVEL_SHOP)
+                    {
+                        previousLevel = currentLevel;   // guardamos desde dónde venimos
+                        currentLevel = LEVEL_SHOP;
+
+                        StopMusicStream(gameMusic);
+                        PlaySound(levelStartSound);
+                        levelStarting = true;
+                        levelStartTimer = 0.0f;
+                        gameState = STATE_MAP;
+
+                        player.alive = true;
+                        player.speedY = 0;
+                        player.velX = 0;
+                        player.deathAnim = false;
+                        player.position = Vector2{ 200, 200 };   // punto de spawn dentro de la tienda
+                        camera.target = Vector2{ 200, 200 };
+                        camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+
+                        // Cargar el mapa de la tienda (map3)
+                        envItems = BuildEnvItemsFromMap(map3, 12,
                             blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                             blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                             blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
@@ -917,92 +1032,69 @@ int main(void)
                         originalEnvItems = envItems;
                         for (int j = 0; j < (int)pterodactilos.size(); j++)
                             pterodactilos[j].vida = true;
+                        break;
                     }
-                    break;
                 }
-                // Detección de la tienda (entrada/salida) con tecla W
-                if ((ei->tileID == TILE_SHOP_ENTER || ei->tileID == TILE_SHOP_EXIT) && ei->active)
+
+                // --- SALIR DE LA TIENDA (volver al nivel anterior) ---
+                if (ei->tileID == TILE_SHOP_EXIT && ei->active && CheckCollisionRecs(playerRect, ei->rect) && IsKeyPressed(KEY_W))
                 {
-                    Rectangle warpZone = {
-                        ei->rect.x - 20,
-                        ei->rect.y - 20,
-                        ei->rect.width + 40,
-                        ei->rect.height + 40
-                    };
-
-                    if (CheckCollisionRecs(playerRect, warpZone) && IsKeyPressed(KEY_W))
+                    if (currentLevel == LEVEL_SHOP)
                     {
-                        if (ei->tileID == TILE_SHOP_ENTER)
-                        {
-                            // Entrar a la tienda (map3)
-                            currentLevel = 3;
+                        currentLevel = previousLevel;   // restauramos el nivel desde el que entramos
 
-                            StopMusicStream(gameMusic);
-                            PlaySound(levelStartSound);
-                            levelStarting = true;
-                            levelStartTimer = 0.0f;
-                            gameState = STATE_MAP;
+                        StopMusicStream(gameMusic);
+                        PlaySound(levelStartSound);
+                        levelStarting = true;
+                        levelStartTimer = 0.0f;
+                        gameState = STATE_MAP;
 
-                            player.alive = true;
-                            player.speedY = 0;
-                            player.velX = 0;
-                            player.deathAnim = false;
-                            player.position = Vector2{ 200, 200 };   // Ajusta si es necesario
-                            camera.target = Vector2{ 200, 200 };
-                            camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
-
-                            envItems = BuildEnvItemsFromMap(map3, 11,
-                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
-                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
-                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
-                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
-                            originalEnvItems = envItems;
-                            for (int j = 0; j < (int)pterodactilos.size(); j++)
-                                pterodactilos[j].vida = true;
-                        }
-                        else if (ei->tileID == TILE_SHOP_EXIT)
-                        {
-                            // Salir de la tienda (volver a map2)
-                            currentLevel = 2;
-
-                            StopMusicStream(gameMusic);
-                            PlaySound(levelStartSound);
-                            levelStarting = true;
-                            levelStartTimer = 0.0f;
-                            gameState = STATE_MAP;
-
-                            player.alive = true;
-                            player.speedY = 0;
-                            player.velX = 0;
-                            player.deathAnim = false;
-                            player.position = Vector2{ 1000, 400 };   // Cerca de la tienda
+                        player.alive = true;
+                        player.speedY = 0;
+                        player.velX = 0;
+                        player.deathAnim = false;
+                        // Posición de salida (cerca de la entrada a la tienda)
+                        if (currentLevel == 2) {
+                            player.position = Vector2{ 1000, 400 };
                             camera.target = Vector2{ 1000, 400 };
-                            camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
+                        }
+                        else {
+                            player.position = Vector2{ 550, 200 };
+                            camera.target = Vector2{ 550, 200 };
+                        }
+                        camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
 
+                        // Recargar el mapa del nivel correspondiente
+                        if (currentLevel == 2) {
                             envItems = BuildEnvItemsFromMap(map2, 20,
                                 blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                                 blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                                 blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
                                 blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
-                            originalEnvItems = envItems;
-                            for (int j = 0; j < (int)pterodactilos.size(); j++)
-                                pterodactilos[j].vida = true;
                         }
+                        else if (currentLevel == 1) {
+                            envItems = BuildEnvItemsFromMap(map, 105,
+                                blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
+                                blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
+                                blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
+                                blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
+                        }
+                        originalEnvItems = envItems;
+                        for (int j = 0; j < (int)pterodactilos.size(); j++)
+                            pterodactilos[j].vida = true;
                         break;
                     }
                 }
-                // Recolectar objetos (bolsas)
+
+                // --- COLECTABLES (bolsas) ---
                 if (ei->collectible)
                 {
                     if (CheckCollisionRecs(playerRect, ei->rect))
                     {
                         PlaySound(coinSound);
-
                         ei->active = false;
-
                         if (ei->texture.id == blockBossaCollons.id) player.coins += 100;
                         else if (ei->texture.id == blockBossaCollonsPetit.id) player.coins += 50;
-
                         continue;
                     }
                     if (ei->lifetime > 0)
@@ -1051,7 +1143,7 @@ int main(void)
             for (int i = 0; i < (int)envItems.size(); i++)
             {
                 if (!envItems[i].active) continue;
-                if (envItems[i].tileID == TILE_WARP) continue;  // oculta los viejos warps invisibles
+                if (envItems[i].tileID == TILE_WARP) continue;
                 DrawTexturePro(
                     envItems[i].texture,
                     Rectangle{ 0, 0, (float)envItems[i].texture.width, (float)envItems[i].texture.height },
@@ -1134,7 +1226,6 @@ int main(void)
 
                 if (IsKeyPressed(KEY_R))
                 {
-                    // AUDIO - Volver a música de menú
                     StopMusicStream(gameMusic);
                     StopMusicStream(gameOverMusic);
                     PlayMusicStream(titleMusic);
@@ -1176,7 +1267,6 @@ int main(void)
 
             ClearBackground(BLACK);
 
-            // Dibuja la imagen centrada en pantalla
             DrawTexturePro(
                 mapImage,
                 Rectangle{ 0, 0, (float)mapImage.width, (float)mapImage.height },
@@ -1252,18 +1342,7 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     if (IsKeyReleased(KEY_SPACE))
         player->isJumping = false;
 
-    // Movimiento horizontal (primer bloque, mantener compatibilidad)
-    if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S))
-        player->velX += PLAYER_ACC * delta;
-    else if (IsKeyDown(KEY_A) && !IsKeyDown(KEY_S))
-        player->velX -= PLAYER_ACC * delta;
-    else
-    {
-        if (player->velX > 0) { player->velX -= PLAYER_FRICTION * delta; if (player->velX < 0) player->velX = 0; }
-        else if (player->velX < 0) { player->velX += PLAYER_FRICTION * delta; if (player->velX > 0) player->velX = 0; }
-    }
-
-    // Movimiento horizontal PRO++
+    // Movimiento horizontal
     float acc = PLAYER_ACC;
     float friction = PLAYER_FRICTION;
 
