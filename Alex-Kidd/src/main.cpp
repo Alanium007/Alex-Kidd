@@ -267,7 +267,7 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
             else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
             else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons;    item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
-            else if (tile == TILE_SHOP_ENTER) { item.texture = blockPorta;          item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+            else if (tile == TILE_SHOP_ENTER) { item.texture;          item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
             else if (tile == TILE_SHOP_EXIT) { item.texture = blockPorta;           item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
             else if (tile == TILE_TERRA_COVA) { item.texture = terraCova; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
             else if (tile == TILE_TERRA_COVA_L) { item.texture = terraCovaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
@@ -472,6 +472,8 @@ int main(void)
     enemic p8 = { 0 }; p8.posicio = Vector3{ 600, 5210 }; p8.velocitat = 2; p8.vida = true; pterodactilos.push_back(p8);
     enemic p9 = { 0 }; p9.posicio = Vector3{ 600, 6000 }; p9.velocitat = 2; p9.vida = true; pterodactilos.push_back(p9);
     enemic p10 = { 0 }; p10.posicio = Vector3{ 500, 6580 }; p10.velocitat = 2; p10.vida = true; pterodactilos.push_back(p10);
+
+    std::vector<enemic> originalPterodactilos = pterodactilos;
 
     player.position = Vector2{ 550, 200 };
     player.spawn = player.position;
@@ -952,9 +954,7 @@ int main(void)
                                 blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
                                 blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                             originalEnvItems = envItems;
-                            for (int j = 0; j < (int)pterodactilos.size(); j++)
-                                pterodactilos[j].vida = true;
-                            break;
+                            pterodactilos = originalPterodactilos;
                         }
 
                         // Cargar el siguiente nivel según el número
@@ -995,9 +995,7 @@ int main(void)
                                 blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                         }
                         originalEnvItems = envItems;
-                        for (int j = 0; j < (int)pterodactilos.size(); j++)
-                            pterodactilos[j].vida = true;
-                        break;
+                        pterodactilos = originalPterodactilos;
                     }
                 }
 
@@ -1030,9 +1028,7 @@ int main(void)
                             blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
                             blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                         originalEnvItems = envItems;
-                        for (int j = 0; j < (int)pterodactilos.size(); j++)
-                            pterodactilos[j].vida = true;
-                        break;
+                        pterodactilos = originalPterodactilos;
                     }
                 }
 
@@ -1080,9 +1076,7 @@ int main(void)
                                 blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                         }
                         originalEnvItems = envItems;
-                        for (int j = 0; j < (int)pterodactilos.size(); j++)
-                            pterodactilos[j].vida = true;
-                        break;
+                        pterodactilos = originalPterodactilos;
                     }
                 }
 
@@ -1248,7 +1242,7 @@ int main(void)
 
                     envItems = originalEnvItems;
                     for (int i = 0; i < (int)pterodactilos.size(); i++)
-                        pterodactilos[i].vida = true;
+                        pterodactilos = originalPterodactilos;
 
                     currentLevel = 1;
                     envItems = BuildEnvItemsFromMap(map, 105,
