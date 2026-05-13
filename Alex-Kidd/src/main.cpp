@@ -56,6 +56,8 @@ Modified by: Alan, Ian, Yarley, Lluc
 #define TILE_ESTALAGMITA_L   27
 #define TILE_ESTALAGMITA_R   28
 #define TILE_BREAK_CAVE      29
+#define TILE_PUNTITA_L      30
+#define TILE_PUNTITA_R      31
 
 
 #define TILE_SIZE 80
@@ -84,6 +86,8 @@ Texture2D AlexKiddDeath;
 Texture2D MonsterBirdR;
 Texture2D MonsterBirdL;
 
+Texture2D RollingRockR;
+
 Texture2D blockSolidTerra;
 Texture2D blockBreak;
 Texture2D blockTerraR;
@@ -111,6 +115,8 @@ Texture2D bloqueSolidoCueva2;
 Texture2D estalagmitaL;
 Texture2D estalagmitaR;
 Texture2D bloqueRompibleCueva;
+Texture2D puntitaL;
+Texture2D puntitaR;
 
 Texture2D MIAU;
 Texture2D negro;
@@ -216,13 +222,14 @@ void UpdateCameraCenterSmoothFollow(Camera2D* camera, Player* player, EnvItem* e
 void UpdateCameraEvenOutOnLanding(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
+void UpdateCameraHorizontalOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void PterodactilMoviment(enemic* pterodactil, EnvItem* envItems, int envItemsLength, float delta);
 void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight);
 void PlayerHitEnemy(Player* player, enemic* pterodactil, int LeftOrRight);
 void EnemyHitPlayer(Player* player, enemic* pterodactil);
 void PlayerAttackEnemy(Player* player, enemic* ptero, int LeftOrRight);
 
-std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
+std::vector<EnvItem> BuildEnvItemsFromMap(int* map, int rows, int cols,
     Texture2D blockSolidTerra, Texture2D blockBreak,
     Texture2D blockTerraR, Texture2D blockTerraL,
     Texture2D blockHerbaR, Texture2D blockHerbaL,
@@ -232,61 +239,72 @@ std::vector<EnvItem> BuildEnvItemsFromMap(int map[][24], int rows,
     Texture2D blockBossaCollonsPetit, Texture2D blockPorta,
     Texture2D negro, Texture2D pedra)
 {
-    std::vector<EnvItem> items;
-    for (int y = 0; y < rows; y++) {
-        for (int x = 0; x < 24; x++) {
-            int tile = map[y][x];
-            if (tile == 0) continue;
-            if (tile == TILE_WARP) {
-                EnvItem warp = { 0 };
-                warp.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
-                warp.blocking = 0;
-                warp.active = true;
-                warp.tileID = TILE_WARP;
-                warp.texture = { 0 };
-                items.push_back(warp);
-                continue;
+    std::vector<EnvItem> BuildEnvItemsFromMap(int* map, int rows, int cols,
+        Texture2D blockSolidTerra, Texture2D blockBreak,
+        Texture2D blockTerraR, Texture2D blockTerraL,
+        Texture2D blockHerbaR, Texture2D blockHerbaL,
+        Texture2D blockSolidHerba, Texture2D blockInterrogant,
+        Texture2D blockEstrella, Texture2D blockCalaveraGroc,
+        Texture2D blockCalaveraRosa, Texture2D blockBossaCollons,
+        Texture2D blockBossaCollonsPetit, Texture2D blockPorta,
+        Texture2D negro, Texture2D pedra);
+    
+        std::vector<EnvItem> items;
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                int tile = map[y * cols + x];   // <-- acceso plano
+                if (tile == 0) continue;
+                if (tile == TILE_WARP) {
+                    EnvItem warp = { 0 };
+                    warp.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
+                    warp.blocking = 0;
+                    warp.active = true;
+                    warp.tileID = TILE_WARP;
+                    warp.texture = { 0 };
+                    items.push_back(warp);
+                    continue;
+                }
+                EnvItem item = { 0 };
+                item.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
+                item.blocking = 1;
+                item.active = true;
+                item.lifetime = 0.0f;
+                if (tile == TILE_SOLID) { item.texture = blockSolidTerra;   item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_BREAK) { item.texture = blockBreak;        item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
+                else if (tile == TILE_NEGRO) { item.texture = negro;             item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_PEDRA) { item.texture = pedra;             item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_PORTA) { item.texture = blockPorta;        item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+                else if (tile == TILE_SOLID_HERBA) { item.texture = blockSolidHerba;  item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_HERBA_R) { item.texture = blockHerbaR;       item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_HERBA_L) { item.texture = blockHerbaL;       item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_TERRA_R) { item.texture = blockTerraR;       item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_TERRA_L) { item.texture = blockTerraL;       item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
+                else if (tile == TILE_INTERROGANT) { item.texture = blockInterrogant;  item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
+                else if (tile == TILE_ESTRELLA) { item.texture = blockEstrella;     item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
+                else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons; item.type = BLOCK_SOLID; item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
+                else if (tile == TILE_SHOP_ENTER) { item.type = BLOCK_SOLID; item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+                else if (tile == TILE_SHOP_EXIT) { item.texture = blockPorta; item.type = BLOCK_SOLID; item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
+                else if (tile == TILE_TERRA_COVA) { item.texture = terraCova;           item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_TERRA_COVA_L) { item.texture = terraCovaL;          item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_TERRA_COVA_R) { item.texture = terraCovaR;          item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_TRIANGLE_COVA_L) { item.texture = triangleCovaL;       item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_TRIANGLE_COVA_R) { item.texture = triangleCovaR;       item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_SOLID_CAVE1) { item.texture = bloqueSolidoCueva1;  item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_SOLID_CAVE2) { item.texture = bloqueSolidoCueva2;  item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_ESTALAGMITA_L) { item.texture = estalagmitaL;        item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_ESTALAGMITA_R) { item.texture = estalagmitaR;        item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_PUNTITA_L) { item.texture = puntitaL;        item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_PUNTITA_R) { item.texture = puntitaR;        item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                else if (tile == TILE_BREAK_CAVE) { item.texture = bloqueRompibleCueva; item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
+                else { item.texture = blockSolidTerra; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
+                item.tileID = tile;
+                items.push_back(item);
             }
-            EnvItem item = { 0 };
-            item.rect = { (float)x * TILE_SIZE, (float)y * TILE_SIZE, TILE_SIZE, TILE_SIZE };
-            item.blocking = 1;
-            item.active = true;
-            item.lifetime = 0.0f;
-            if (tile == TILE_SOLID) { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_BREAK) { item.texture = blockBreak;           item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
-            else if (tile == TILE_NEGRO) { item.texture = negro;                item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_PEDRA) { item.texture = pedra;                item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_PORTA) { item.texture = blockPorta;           item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
-            else if (tile == TILE_SOLID_HERBA) { item.texture = blockSolidHerba;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_HERBA_R) { item.texture = blockHerbaR;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_HERBA_L) { item.texture = blockHerbaL;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_TERRA_R) { item.texture = blockTerraR;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_TERRA_L) { item.texture = blockTerraL;          item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_INTERROGANT) { item.texture = blockInterrogant;     item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
-            else if (tile == TILE_ESTRELLA) { item.texture = blockEstrella;        item.type = BLOCK_BREAKABLE; item.drop = DROP_STAR; }
-            else if (tile == TILE_EMOTICONOCALAVERAGROC) { item.texture = blockCalaveraGroc;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_EMOTICONOCALAVERAROSA) { item.texture = blockCalaveraRosa;    item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            else if (tile == TILE_BOSSACOLLONS) { item.texture = blockBossaCollons;    item.type = BLOCK_SOLID;     item.blocking = 0; item.collectible = true; item.drop = DROP_NONE; }
-            else if (tile == TILE_SHOP_ENTER) { item.texture;          item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
-            else if (tile == TILE_SHOP_EXIT) { item.texture = blockPorta;           item.type = BLOCK_SOLID;  item.blocking = 0; item.collectible = false; item.drop = DROP_NONE; }
-            else if (tile == TILE_TERRA_COVA) { item.texture = terraCova; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_TERRA_COVA_L) { item.texture = terraCovaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_TERRA_COVA_R) { item.texture = terraCovaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_TRIANGLE_COVA_L) { item.texture = triangleCovaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_TRIANGLE_COVA_R) { item.texture = triangleCovaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_SOLID_CAVE1) { item.texture = bloqueSolidoCueva1; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_SOLID_CAVE2) { item.texture = bloqueSolidoCueva2; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_ESTALAGMITA_L) { item.texture = estalagmitaL; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_ESTALAGMITA_R) { item.texture = estalagmitaR; item.type = BLOCK_SOLID; item.drop = DROP_NONE; }
-            else if (tile == TILE_BREAK_CAVE) { item.texture = bloqueRompibleCueva; item.type = BLOCK_BREAKABLE; item.drop = DROP_COIN; }
-            else { item.texture = blockSolidTerra;      item.type = BLOCK_SOLID;     item.drop = DROP_NONE; }
-            item.tileID = tile;
-            items.push_back(item);
-
         }
+        return items;
     }
-    return items;
-}
 
 //------------------------------------------------------------------------------------
 // MAIN
@@ -325,6 +343,8 @@ int main(void)
     MonsterBirdR = LoadTexture("resources/MonsterBirdR.png");
     MonsterBirdL = LoadTexture("resources/MonsterBirdL.png");
 
+    RollingRockR = LoadTexture("resources/RollingRockR.png");
+
     blockSolidTerra = LoadTexture("resources/BlocSolidTerra.png");
     blockBreak = LoadTexture("resources/BlocBreakable.png");
     blockTerraR = LoadTexture("resources/triangledretaterra.png");
@@ -350,6 +370,8 @@ int main(void)
     estalagmitaL = LoadTexture("resources/estalagmitaL.png");
     estalagmitaR = LoadTexture("resources/estalagmitaR.png");
     bloqueRompibleCueva = LoadTexture("resources/bloqueRompibleCueva.png");
+	puntitaL = LoadTexture("resources/puntitaL.png");
+	puntitaR = LoadTexture("resources/puntitaR.png");
 
     MIAU = LoadTexture("resources/Patricio.png");
     negro = LoadTexture("resources/Negro.png");
@@ -627,23 +649,34 @@ int main(void)
          {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3}
     };
 
-    // ----- NUEVO NIVEL DEMO (plantilla para el siguiente nivel) -----
-    int map4[12][24] = {   
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-        {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,3,3,3,3},  // puerta de salida (siguiente nivel o fin)
-        {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
-        {20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20},
-        {20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20}
+    int map4[24][180] = {
+    {3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,0,0,30,25,25,25,26,25,26,25,26,25,26,26,26,25,25,26,25,26/*Castaña*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,0,0,23,26,25,26,27,26,25,26,28,28,26,25,25,26,25,25,26,0/*Castaña*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,0,30,26,25,26,27,0,0,27,0,0,0,0,28,28,25,26,25,26,0/*Castaña*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,0,23,25,27,27,0,0,0,29,29,29,29,29,0,0,26,26,27,28,0/*Castaña*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,30,26,27,0,0,0,0,0,10,0,0,0,10,0,0,28,0,0,0,0/*Castaña*/,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,0,23,25,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0/*Castaña*/,0,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,30,26,27,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,29,29/*Castaña*/,10,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,23,25,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,29,29/*Castaña*/,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,26,27,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,29,29/*Castaña*/,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,25,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,21,20,20,20,20,20,22,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,3,3,3,3},
+    {3,3,3,3,1,1,1,1,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,22,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,20,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
+    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
     };
 
-    std::vector<EnvItem> envItems = BuildEnvItemsFromMap(map, 105,
+    std::vector<EnvItem> envItems = BuildEnvItemsFromMap((int*)map, 105, 24,
         blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
         blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
         blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
@@ -663,7 +696,9 @@ int main(void)
         UpdateCameraCenterSmoothFollow,
         UpdateCameraEvenOutOnLanding,
         UpdateCameraPlayerBoundsPush,
-        UpdateCameraDownOnly
+        UpdateCameraDownOnly,
+        UpdateCameraHorizontalOnly
+
     };
 
     int cameraOption = 4;
@@ -743,7 +778,7 @@ int main(void)
         }
 
         // Selección de cámara según nivel (el nivel 3 usa la cámara centrada, etc.)
-        if (currentLevel == 3) cameraOption = 1;
+        if (currentLevel == 3) cameraOption = 6;
         else cameraOption = 5;
 
         // Animaciones
@@ -948,7 +983,7 @@ int main(void)
                             camera.target = Vector2{ 550, 200 };
                             camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
                             // Recargar nivel 1
-                            envItems = BuildEnvItemsFromMap(map, 105,
+                            envItems = BuildEnvItemsFromMap((int*)map, 105, 24,
                                 blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                                 blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                                 blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
@@ -974,21 +1009,21 @@ int main(void)
                             camera.target = Vector2{ 550, 200 };
                         }
                         else if (currentLevel == 3) {
-                            player.position = Vector2{ 200, 200 };
-                            camera.target = Vector2{ 200, 200 };
+                            player.position = Vector2{ 1000, 1000 };
+                            camera.target = Vector2{ 1000, 1000 };
                         }
                         camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
 
                         // Construir el mapa correspondiente
                         if (currentLevel == 2) {
-                            envItems = BuildEnvItemsFromMap(map2, 20,
+                            envItems = BuildEnvItemsFromMap((int*)map2, 20, 24,
                                 blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                                 blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                                 blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
                                 blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                         }
                         else if (currentLevel == 3) {
-                            envItems = BuildEnvItemsFromMap(map4, 20,
+                            envItems = BuildEnvItemsFromMap((int*)map4, 24, 180,
                                 blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                                 blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                                 blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
@@ -1022,7 +1057,7 @@ int main(void)
                         camera.offset = Vector2{ screenWidth / 2.0f, screenHeight / 2.0f };
 
                         // Cargar el mapa de la tienda (map3)
-                        envItems = BuildEnvItemsFromMap(map3, 12,
+                        envItems = BuildEnvItemsFromMap((int*)map3, 12, 24,
                             blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                             blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                             blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
@@ -1062,14 +1097,14 @@ int main(void)
 
                         // Recargar el mapa del nivel correspondiente
                         if (currentLevel == 2) {
-                            envItems = BuildEnvItemsFromMap(map2, 20,
+                            envItems = BuildEnvItemsFromMap((int*)map2, 20, 24,
                                 blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                                 blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                                 blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
                                 blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                         }
                         else if (currentLevel == 1) {
-                            envItems = BuildEnvItemsFromMap(map, 105,
+                            envItems = BuildEnvItemsFromMap((int*)map, 105, 24,
                                 blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                                 blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                                 blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
@@ -1114,7 +1149,10 @@ int main(void)
             DrawText("Yarley Tituana", screenWidth / 2 - 200, 490, 40, LIGHTGRAY);
             DrawText("Lluc Torner", screenWidth / 2 - 200, 560, 40, LIGHTGRAY);
         }
-        ClearBackground(BLAU);
+        if (currentLevel == 3)
+            ClearBackground(CLITERAL(Color) { 85, 0, 0 });  // morado oscuro cueva
+        else
+            ClearBackground(BLAU);
 
         if (gameState == STATE_PLAYING)
         {
@@ -1245,7 +1283,7 @@ int main(void)
                         pterodactilos = originalPterodactilos;
 
                     currentLevel = 1;
-                    envItems = BuildEnvItemsFromMap(map, 105,
+                    envItems = BuildEnvItemsFromMap((int*)map, 105, 24,
                         blockSolidTerra, blockBreak, blockTerraR, blockTerraL,
                         blockHerbaR, blockHerbaL, blockSolidHerba, blockInterrogant,
                         blockEstrella, blockCalaveraGroc, blockCalaveraRosa,
@@ -1578,4 +1616,31 @@ void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, i
     if (player->position.y > lowestY) lowestY = player->position.y;
     camera->target.x = fixedX;
     camera->target.y = lowestY;
+}
+
+void UpdateCameraHorizontalOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height)
+{
+    static float furthestX = -2.0f;
+    static float fixedY = -2.0f;   // <-- nuevo: altura fija
+
+    // Reset al entrar al nivel
+    if (player->position.x < 600.0f) {
+        furthestX = -2.0f;
+        fixedY = -2.0f;
+    }
+
+    // Inicializar ambos en el primer frame
+    if (furthestX < 0.0f) {
+        furthestX = player->position.x;
+        fixedY = player->position.y;   // capturamos la Y del spawn, nunca más cambia
+    }
+
+    // Solo avanza hacia la derecha
+    if (player->position.x > furthestX) {
+        furthestX = player->position.x;
+    }
+
+    camera->offset = Vector2{ width / 3.5f, height / 1.35f };
+    camera->target.x = furthestX;
+    camera->target.y = fixedY;     // Y completamente fija
 }
