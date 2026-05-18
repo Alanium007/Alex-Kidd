@@ -142,6 +142,7 @@ Texture2D Menu5;
 Texture2D Menu6;
 
 Texture2D Inventari;
+Texture2D PowerBracelet;
 
 Texture2D GameOver;
 // AUDIO
@@ -159,6 +160,12 @@ Music gameOverMusic;
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
+
+typedef enum {
+    ITEM_NONE,
+    ITEM_RING
+} ItemType;
+
 typedef struct Player {
     Vector2 position;
     float speedY;
@@ -178,6 +185,10 @@ typedef struct Player {
     float deathX;
     int deathFrame;
     int deathFrameCounter;
+
+    ItemType inventory[5];
+    int inventoryCount;
+    bool ringActive;
 } Player;
 
 typedef enum {
@@ -188,7 +199,8 @@ typedef enum {
 typedef enum {
     DROP_NONE,
     DROP_COIN,
-    DROP_STAR
+    DROP_STAR,
+    DROP_RING
 } DropType;
 
 typedef struct EnvItem {
@@ -202,6 +214,13 @@ typedef struct EnvItem {
     float lifetime;
     int tileID;
 } EnvItem;
+
+typedef struct WorldItem {
+    Vector2 position;
+    ItemType type;
+    bool active;
+    float bobTimer;
+} WorldItem;
 
 typedef struct enemic {
     bool vida;
@@ -229,7 +248,7 @@ void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* env
 void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void UpdateCameraHorizontalOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height);
 void PterodactilMoviment(enemic* pterodactil, EnvItem* envItems, int envItemsLength, float delta);
-void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight);
+void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight, std::vector<WorldItem>& worldItems, bool& ringDropped);
 void PlayerHitEnemy(Player* player, enemic* pterodactil, int LeftOrRight);
 void EnemyHitPlayer(Player* player, enemic* pterodactil);
 void PlayerAttackEnemy(Player* player, enemic* ptero, int LeftOrRight);
@@ -403,6 +422,7 @@ int main(void)
     Menu6 = LoadTexture("resources/6.png");
 
     Inventari = LoadTexture("resources/Inventari.png");
+    PowerBracelet = LoadTexture("resources/PowerBracelet.png");
 
     GameOver = LoadTexture("resources/GameOver.png");
 
@@ -534,6 +554,8 @@ int main(void)
     player.alive = true;
     player.respawnTimer = 2.0f;
 
+    std::vector<WorldItem> worldItems;
+    bool ringDropped = false;
 
     int map[105][24] = {
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -746,6 +768,8 @@ int main(void)
     int menuImageIndex = 0;
     bool mostrarInventari = false;
 
+    int inventariSeleccionat = 0;
+
     while (!WindowShouldClose())
     {
         if (gameState == STATE_CREDITS) {
@@ -855,6 +879,44 @@ int main(void)
 
             if (IsKeyPressed(KEY_P)) {
                 mostrarInventari = !mostrarInventari;
+                if (!mostrarInventari) inventariSeleccionat = 0;
+            }
+
+            if (mostrarInventari) {
+                if (IsKeyPressed(KEY_D) && inventariSeleccionat < player.inventoryCount - 1)
+                    inventariSeleccionat++;
+                if (IsKeyPressed(KEY_A) && inventariSeleccionat > 0)
+                    inventariSeleccionat--;
+                if (IsKeyPressed(KEY_ENTER) && player.inventoryCount > 0) {
+                    ItemType selectedItem = player.inventory[inventariSeleccionat];
+                    if (selectedItem == ITEM_RING) {
+                        player.ringActive = true;
+                        for (int i = inventariSeleccionat; i < player.inventoryCount - 1; i++)
+                            player.inventory[i] = player.inventory[i + 1];
+                        player.inventory[player.inventoryCount - 1] = ITEM_NONE;
+                        player.inventoryCount--;
+                        if (inventariSeleccionat >= player.inventoryCount && inventariSeleccionat > 0)
+                            inventariSeleccionat--;
+                        mostrarInventari = false;
+                    }
+                }
+            }
+            else {
+                Rectangle playerRect = { player.position.x - 20, player.position.y - 80, 40, 80 };
+                for (int i = 0; i < (int)worldItems.size(); i++) {
+                    WorldItem* wi = &worldItems[i];
+                    if (!wi->active) continue;
+                    wi->bobTimer += deltaTime;
+                    Rectangle itemRect = { wi->position.x - 20, wi->position.y - 20, 40, 40 };
+                    if (CheckCollisionRecs(playerRect, itemRect)) {
+                        if (player.inventoryCount < 5) {
+                            player.inventory[player.inventoryCount] = wi->type;
+                            player.inventoryCount++;
+                            PlaySound(coinSound);
+                        }
+                        wi->active = false;
+                    }
+                }
             }
             // Mascota
             static float teleportCooldown = 0.0f;
@@ -1227,6 +1289,18 @@ int main(void)
                 );
             }
 
+            for (int i = 0; i < (int)worldItems.size(); i++) {
+                WorldItem* wi = &worldItems[i];
+                if (!wi->active) continue;
+                if (wi->type == ITEM_RING) {
+                    DrawTexturePro(
+                        PowerBracelet,
+                        Rectangle{ 0, 0, (float)PowerBracelet.width, (float)PowerBracelet.height },
+                        Rectangle{ wi->position.x - 40, wi->position.y - 40, 80, 80 },
+                        Vector2{ 0, 0 }, 0.0f, WHITE);
+                }
+            }
+
             for (int i = 0; i < (int)pterodactilos.size(); i++)
                 EnemyHitPlayer(&player, &pterodactilos[i]);
 
@@ -1264,14 +1338,14 @@ int main(void)
                 else if (IsKeyDown(KEY_S) && player.canJump && LeftOrRight == 0) DrawTextureRec(AlexKiddCrouchR, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
                 else if (IsKeyDown(KEY_S) && player.canJump && LeftOrRight == 1) DrawTextureRec(AlexKiddCrouchL, frameRecJump, Vector2{ player.position.x - 40, player.position.y - 129 }, WHITE);
 
-                if (IsKeyPressed(KEY_ENTER) && !attacking)
+                if (IsKeyPressed(KEY_ENTER) && !attacking && !mostrarInventari)
                 {
                     attacking = true;
                     attackTimer = 20;
 
                     PlaySound(punchSound);
 
-                    PlayerBreakBlock(&player, envItems.data(), envItems.size(), LeftOrRight);
+                    PlayerBreakBlock(&player, envItems.data(), envItems.size(), LeftOrRight, worldItems, ringDropped);
 
                     for (int i = 0; i < (int)pterodactilos.size(); i++)
                         PlayerAttackEnemy(&player, &pterodactilos[i], LeftOrRight);
@@ -1321,6 +1395,21 @@ int main(void)
                 DrawTextureEx(AlexKiddIdleR, Vector2{ 20.0f + i * 45.0f, 60.0f }, 0, 0.35f, WHITE);
 
             DrawText(TextFormat("Coins: %d", player.coins), 20, 20, 30, YELLOW);
+
+            if (player.inventoryCount > 0) {
+                DrawText("P = Inventari", screenWidth - 220, 20, 22, WHITE);
+                for (int i = 0; i < player.inventoryCount; i++) {
+                    if (player.inventory[i] == ITEM_RING) {
+                        DrawTexturePro(PowerBracelet,
+                            Rectangle{ 0, 0, (float)PowerBracelet.width, (float)PowerBracelet.height },
+                            Rectangle{ (float)(screenWidth - 220 + i * 50), 50, 40, 40 },
+                            Vector2{ 0, 0 }, 0.0f, WHITE);
+                    }
+                }
+            }
+            if (player.ringActive) {
+                DrawText("ANELL ACTIU!", screenWidth / 2 - 80, 20, 28, GOLD);
+            }
 
             // GAME OVER
             if (gameOver && !player.deathAnim)
@@ -1394,8 +1483,31 @@ int main(void)
                 Inventari,
                 Rectangle{ 0, 0, (float)Inventari.width, (float)Inventari.height },
                 Rectangle{ 0, 0, (float)screenWidth, (float)screenHeight },
-                Vector2{ 0, 0 }, 0.0f, WHITE
-            );
+                Vector2{ 0, 0 }, 0.0f, WHITE);
+
+            float slotSize = 80.0f;
+            float startX = screenWidth / 2.0f - (5 * slotSize + 4 * 10) / 2.0f;
+            float slotY = screenHeight / 2.0f - slotSize / 2.0f;
+
+            for (int i = 0; i < 5; i++) {
+                float sx = startX + i * (slotSize + 10);
+                Color slotColor = (i == inventariSeleccionat) ? YELLOW : WHITE;
+                DrawRectangleLinesEx(Rectangle{ sx - 3, slotY - 3, slotSize + 6, slotSize + 6 }, 3, slotColor);
+                if (i < player.inventoryCount && player.inventory[i] == ITEM_RING) {
+                    DrawTexturePro(PowerBracelet,
+                        Rectangle{ 0, 0, (float)PowerBracelet.width, (float)PowerBracelet.height },
+                        Rectangle{ sx, slotY, slotSize, slotSize },
+                        Vector2{ 0, 0 }, 0.0f, WHITE);
+                }
+            }
+
+            DrawText("A/D: seleccionar   ENTER: usar   P: tancar", screenWidth / 2 - 280, (int)slotY + 100, 26, WHITE);
+
+            if (player.inventoryCount > 0 && inventariSeleccionat < player.inventoryCount) {
+                if (player.inventory[inventariSeleccionat] == ITEM_RING) {
+                    DrawText("Anell del Poder", screenWidth / 2 - 100, (int)slotY - 50, 28, GOLD);
+                }
+            }
         }
 
         EndDrawing();
@@ -1513,7 +1625,7 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     player->position.y = playerRect.y + playerRect.height;
 }
 
-void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight)
+void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int LeftOrRight, std::vector<WorldItem>& worldItems, bool& ringDropped)
 {
     float width = 50;
     float height = 40;
@@ -1547,6 +1659,17 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int envItemsLength, int
 
             if (ei->tileID == TILE_INTERROGANT) {
                 PlaySound(coinBlockSound);
+                ei->active = false;
+                if (!ringDropped) {
+                    ringDropped = true;
+                    WorldItem wi;
+                    wi.position = { ei->rect.x + TILE_SIZE / 2.0f, ei->rect.y + TILE_SIZE / 2.0f };
+                    wi.type = ITEM_RING;
+                    wi.active = true;
+                    wi.bobTimer = 0.0f;
+                    worldItems.push_back(wi);
+                }
+                continue;
             }
 
             if (ei->type == BLOCK_BREAKABLE) {
