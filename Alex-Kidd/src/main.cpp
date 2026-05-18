@@ -85,8 +85,13 @@ Texture2D AlexKiddDeath;
 
 Texture2D MonsterBirdR;
 Texture2D MonsterBirdL;
+// ===== TEXTURAS (sección global de texturas) =====
+// NUEVO: Añadir después de las texturas de MonsterBird
+Texture2D EscorpiR;
+Texture2D EscorpiL;
+Texture2D CastanyaR;   // o CastanyaL si tienes sprite mirando izquierda
+Texture2D CastanyaL;
 
-Texture2D RollingRockR;
 
 Texture2D blockSolidTerra;
 Texture2D blockBreak;
@@ -203,7 +208,7 @@ typedef struct enemic {
     int velocitat;
     bool siToca;
     Vector3 posicio;
-} pterodactil, escorpi, mono;
+} pterodactil, escorpi, castaña;
 
 typedef enum {
     STATE_CREDITS,
@@ -343,7 +348,12 @@ int main(void)
     MonsterBirdR = LoadTexture("resources/MonsterBirdR.png");
     MonsterBirdL = LoadTexture("resources/MonsterBirdL.png");
 
-    RollingRockR = LoadTexture("resources/RollingRockR.png");
+    // ===== CARGA DE TEXTURAS (dentro de main, tras cargar MonsterBird) =====
+// NUEVO:
+    EscorpiR = LoadTexture("resources/escorpiR.png");
+    EscorpiL = LoadTexture("resources/escorpiL.png");
+    CastanyaR = LoadTexture("resources/CastanyaR.png");
+    CastanyaL = LoadTexture("resources/CastanyaL.png");
 
     blockSolidTerra = LoadTexture("resources/BlocSolidTerra.png");
     blockBreak = LoadTexture("resources/BlocBreakable.png");
@@ -442,6 +452,10 @@ int main(void)
     Rectangle frameRecPuny = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle frameRecCrouch = { 0.0f, 0.0f, ((float)AlexKiddPunyR.width), ((float)AlexKiddPunyR.height) };
     Rectangle framePterodactil = { 0.0f, 0.0f, ((float)MonsterBirdR.width / 2), ((float)MonsterBirdR.height) };
+
+    Rectangle frameEscorpi = { 0.0f, 0.0f, ((float)EscorpiR.width / 2), (float)EscorpiR.height };
+    Rectangle frameCastanya = { 0.0f, 0.0f, ((float)CastanyaR.width / 2), (float)CastanyaR.height };
+
     Rectangle frameRecDeath = { 0.0f, 0.0f, ((float)AlexKiddDeath.width / 3), ((float)AlexKiddDeath.height) };
 
     int playerFrame = 0;
@@ -483,6 +497,8 @@ int main(void)
     Vector2 petPosition = player.position;
 
     std::vector<enemic> pterodactilos;
+    std::vector<enemic> escorpins;
+    std::vector<enemic> castanyes;
 
     enemic p1 = { 0 }; p1.posicio = Vector3{ 600, 1600 }; p1.velocitat = 2; p1.vida = true; pterodactilos.push_back(p1);
     enemic p2 = { 0 }; p2.posicio = Vector3{ 900, 2160 }; p2.velocitat = 2; p2.vida = true; pterodactilos.push_back(p2);
@@ -495,7 +511,23 @@ int main(void)
     enemic p9 = { 0 }; p9.posicio = Vector3{ 600, 6000 }; p9.velocitat = 2; p9.vida = true; pterodactilos.push_back(p9);
     enemic p10 = { 0 }; p10.posicio = Vector3{ 500, 6580 }; p10.velocitat = 2; p10.vida = true; pterodactilos.push_back(p10);
 
+    // Escorpins — solo map4 (nivel 3 jugable)
+    enemic e1 = { 0 }; e1.posicio = Vector3{ 2000, 1080 }; e1.velocitat = 2; e1.vida = true; escorpins.push_back(e1);
+    enemic e2 = { 0 }; e2.posicio = Vector3{ 4000, 1080 }; e2.velocitat = 2; e2.vida = true; escorpins.push_back(e2);
+    enemic e3 = { 0 }; e3.posicio = Vector3{ 6000, 1080 }; e3.velocitat = 2; e3.vida = true; escorpins.push_back(e3);
+    enemic e4 = { 0 }; e4.posicio = Vector3{ 8000, 1080 }; e4.velocitat = 3; e4.vida = true; escorpins.push_back(e4);
+    enemic e5 = { 0 }; e5.posicio = Vector3{ 10000,1080 }; e5.velocitat = 3; e5.vida = true; escorpins.push_back(e5);
+
+    // Castanyes — solo map4 (nivel 3 jugable)
+    enemic c1 = { 0 }; c1.posicio = Vector3{ 3000, 1080 }; c1.velocitat = 2; c1.vida = true; castanyes.push_back(c1);
+    enemic c2 = { 0 }; c2.posicio = Vector3{ 5000, 1080 }; c2.velocitat = 2; c2.vida = true; castanyes.push_back(c2);
+    enemic c3 = { 0 }; c3.posicio = Vector3{ 7000, 1080 }; c3.velocitat = 3; c3.vida = true; castanyes.push_back(c3);
+    enemic c4 = { 0 }; c4.posicio = Vector3{ 9000, 1080 }; c4.velocitat = 3; c4.vida = true; castanyes.push_back(c4);
+
+    // NUEVO: guardar originales para reset
     std::vector<enemic> originalPterodactilos = pterodactilos;
+    std::vector<enemic> originalEscorpins = escorpins;
+    std::vector<enemic> originalCastanyes = castanyes;
 
     player.position = Vector2{ 550, 200 };
     player.spawn = player.position;
@@ -812,6 +844,8 @@ int main(void)
             pteroFrame++;
             if (pteroFrame > 1) pteroFrame = 0;
             framePterodactil.x = (float)pteroFrame * (float)MonsterBirdR.width / 2;
+            frameEscorpi.x = (float)pteroFrame * (float)EscorpiR.width / 2;
+            frameCastanya.x = (float)pteroFrame * (float)CastanyaR.width / 2;
         }
 
         // UPDATE
@@ -944,6 +978,13 @@ int main(void)
             for (int i = 0; i < (int)pterodactilos.size(); i++)
                 PterodactilMoviment(&pterodactilos[i], envItems.data(), envItems.size(), deltaTime);
 
+            if (currentLevel == 3) {
+                for (int i = 0; i < (int)escorpins.size(); i++)
+                    PterodactilMoviment(&escorpins[i], envItems.data(), envItems.size(), deltaTime);
+                for (int i = 0; i < (int)castanyes.size(); i++)
+                    PterodactilMoviment(&castanyes[i], envItems.data(), envItems.size(), deltaTime);
+            }
+
             cameraUpdaters[cameraOption](&camera, &player, envItems.data(), envItems.size(), deltaTime, screenWidth, screenHeight);
 
             Rectangle playerRect = { player.position.x - 20, player.position.y - 80, 40, 80 };
@@ -990,6 +1031,8 @@ int main(void)
                                 blockBossaCollons, blockBossaCollonsPetit, blockPorta, negro, pedra);
                             originalEnvItems = envItems;
                             pterodactilos = originalPterodactilos;
+                            escorpins = originalEscorpins;
+                            castanyes = originalCastanyes;
                         }
 
                         // Cargar el siguiente nivel según el número
@@ -1187,6 +1230,13 @@ int main(void)
             for (int i = 0; i < (int)pterodactilos.size(); i++)
                 EnemyHitPlayer(&player, &pterodactilos[i]);
 
+            if (currentLevel == 3) {
+                for (int i = 0; i < (int)escorpins.size(); i++)
+                    EnemyHitPlayer(&player, &escorpins[i]);
+                for (int i = 0; i < (int)castanyes.size(); i++)
+                    EnemyHitPlayer(&player, &castanyes[i]);
+            }
+
             if (player.deathAnim)
             {
                 Rectangle frameRecDeathDraw = {
@@ -1225,6 +1275,13 @@ int main(void)
 
                     for (int i = 0; i < (int)pterodactilos.size(); i++)
                         PlayerAttackEnemy(&player, &pterodactilos[i], LeftOrRight);
+
+                    if (currentLevel == 3) {
+                        for (int i = 0; i < (int)escorpins.size(); i++)
+                            PlayerAttackEnemy(&player, &escorpins[i], LeftOrRight);
+                        for (int i = 0; i < (int)castanyes.size(); i++)
+                            PlayerAttackEnemy(&player, &castanyes[i], LeftOrRight);
+                    }
                 }
             }
 
@@ -1236,6 +1293,25 @@ int main(void)
                     DrawTextureRec(MonsterBirdR, framePterodactil, Vector2{ p->posicio.x, p->posicio.y }, WHITE);
                 else
                     DrawTextureRec(MonsterBirdL, framePterodactil, Vector2{ p->posicio.x, p->posicio.y }, WHITE);
+            }
+
+            if (currentLevel == 3) {
+                for (int i = 0; i < (int)escorpins.size(); i++) {
+                    enemic* e = &escorpins[i];
+                    if (!e->vida) continue;
+                    if (e->velocitat > 0)
+                        DrawTextureRec(EscorpiR, frameEscorpi, Vector2{ e->posicio.x, e->posicio.y }, WHITE);
+                    else
+                        DrawTextureRec(EscorpiL, frameEscorpi, Vector2{ e->posicio.x, e->posicio.y }, WHITE);
+                }
+                for (int i = 0; i < (int)castanyes.size(); i++) {
+                    enemic* c = &castanyes[i];
+                    if (!c->vida) continue;
+                    if (c->velocitat > 0)
+                        DrawTextureRec(CastanyaR, frameCastanya, Vector2{ c->posicio.x, c->posicio.y }, WHITE);
+                    else
+                        DrawTextureRec(CastanyaL, frameCastanya, Vector2{ c->posicio.x, c->posicio.y }, WHITE);
+                }
             }
 
             EndMode2D();
