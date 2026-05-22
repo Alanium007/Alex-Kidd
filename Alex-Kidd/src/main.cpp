@@ -2,7 +2,15 @@
     Alex Kidd – Versión definitiva combinada (optimizada)
     (tienda + enemigos + anillo + inventario)
 */
+/*
+Raylib example file.
+This is an example main file for a simple raylib project.
+Use this as a starting point or replace it with your code.
 
+by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
+
+Modified by: Alan, Ian, Yarley, Lluc
+*/
 #include "raylib.h"
 #include "raymath.h"
 #include <stdio.h>
@@ -74,7 +82,7 @@ Texture2D blockBossaCollons, blockBossaCollonsPetit;
 Texture2D terraCova, terraCovaL, terraCovaR, triangleCovaL, triangleCovaR;
 Texture2D bloqueSolidoCueva1, bloqueSolidoCueva2, estalagmitaL, estalagmitaR;
 Texture2D bloqueRompibleCueva, puntitaL, puntitaR, bloqueLava;
-Texture2D MIAU, negro, pedra, TendaFora, TendaBackground;
+Texture2D MIAU, negro, pedra, TendaFora, TendaBackground, ItemRandom, VidaExtra;
 Texture2D mapImage, MenuFondo, MenuTítol, Menu1, Menu2, Menu3, Menu4, Menu5, Menu6;
 Texture2D Inventari, PowerBracelet, GameOver;
 
@@ -315,6 +323,8 @@ int main(void) {
     pedra = LoadTexture("resources/Tenda/Piedra.png");
     TendaFora = LoadTexture("resources/Tenda/Tenda2.png");
     TendaBackground = LoadTexture("resources/Tenda/Tenda.png");
+    ItemRandom = LoadTexture("resources/Tenda/ItemRandom.png");
+    VidaExtra = LoadTexture("resources/Tenda/VidaExtra.png");
     mapImage = LoadTexture("resources/mapa.png");
     MenuFondo = LoadTexture("resources/Fondo.png");
     MenuTítol = LoadTexture("resources/0.png");
