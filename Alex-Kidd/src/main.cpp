@@ -92,6 +92,11 @@ Sound jumpSound, levelStartSound, coinSound, punchSound;
 Sound coinBlockSound, blockBreakSound, lifeTakenSound;
 
 // ---------------------------------------------------------------------
+// Font
+// ---------------------------------------------------------------------
+Font fontBm;
+
+// ---------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------
 typedef enum { ITEM_NONE, ITEM_RING } ItemType;
@@ -360,6 +365,7 @@ int main(void) {
     Inventari = LoadTexture("resources/Inventari.png");
     PowerBracelet = LoadTexture("resources/PowerBracelet.png");
     GameOver = LoadTexture("resources/GameOver.png");
+    fontBm = LoadFont("resources/alex-kidd-in-miracle-world-sms.otf");
 
     // ------------------- Audio -------------------
     titleMusic = LoadMusicStream("resources/TitleScreen.wav");
@@ -1064,11 +1070,20 @@ int main(void) {
         BeginDrawing();
         if (gameState == STATE_CREDITS) {
             ClearBackground(BLACK);
-            DrawText("CREDITS", screenWidth / 2 - 150, 200, 60, WHITE);
-            DrawText("Alan del Tio", screenWidth / 2 - 200, 350, 40, LIGHTGRAY);
-            DrawText("Ian Leon", screenWidth / 2 - 200, 420, 40, LIGHTGRAY);
-            DrawText("Yarley Tituana", screenWidth / 2 - 200, 490, 40, LIGHTGRAY);
-            DrawText("Lluc Torner", screenWidth / 2 - 200, 560, 40, LIGHTGRAY);
+            DrawTextEx(fontBm, "Alex Kidd In Miracle World", Vector2{ screenWidth / 2 - 800, 100 }, 60, 2, WHITE);
+            DrawTextEx(fontBm, "Alpha", Vector2{ screenWidth / 2 - 200, 200 }, 60, 2, WHITE);
+
+            DrawTextEx(fontBm, "Los Macacos", Vector2{ screenWidth / 2 - 740, 340 }, 40, 2, WHITE);
+            DrawTextEx(fontBm, "Alan del Tio", Vector2{ screenWidth / 2 - 710, 420 }, 30, 2, WHITE);
+            DrawTextEx(fontBm, "Ian Leon", Vector2{ screenWidth / 2 - 715, 460 }, 30, 2, WHITE);
+            DrawTextEx(fontBm, "Yarley Tituana", Vector2{ screenWidth / 2 - 715, 500 }, 30, 2, WHITE);
+            DrawTextEx(fontBm, "Lluc Torner", Vector2{ screenWidth / 2 - 707, 540 }, 30, 2, WHITE);
+
+            DrawTextEx(fontBm, "Tutor", Vector2{ screenWidth / 2 + 220, 410 }, 40, 2, WHITE);
+            DrawTextEx(fontBm, "Alejandro Paris Gomez", Vector2{ screenWidth / 2 + 5, 480 }, 30, 2, WHITE);
+
+            DrawTextEx(fontBm, "Projecte I", Vector2{ screenWidth / 2 - 245, 700 }, 40, 2, WHITE);
+            DrawTextEx(fontBm, "CITM - Disseny i Desenvolupament de Videojocs", Vector2{ screenWidth / 2 - 900, 750 }, 40, 0, WHITE);
         }
         else if (currentLevel == 3) ClearBackground(Color{ 85,0,0 });
         else ClearBackground(BLAU);
@@ -1324,6 +1339,7 @@ int main(void) {
     UnloadSound(coinSound); UnloadSound(punchSound);
     UnloadSound(coinBlockSound); UnloadSound(blockBreakSound); UnloadSound(lifeTakenSound);
     UnloadMusicStream(titleMusic); UnloadMusicStream(gameMusic); UnloadMusicStream(gameOverMusic);
+    UnloadFont(fontBm);
     CloseAudioDevice();
     CloseWindow();
     return 0;

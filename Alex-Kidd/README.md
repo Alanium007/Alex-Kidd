@@ -2,7 +2,7 @@
 https://github.com/Alanium007/Alex-Kidd
 
 ## YouTube video
-https://youtu.be/8W-MVS3F2KQ
+
 
 ## Team members:
 
@@ -32,13 +32,19 @@ W - Up
 
 Space - Jump 
 
-Enter -  Punch / Pass Screen
+Enter -  Punch / Pass Screen / Select item
+
+P - Pause / Unpause
 
 
 ## List of features implemented
 
 Basic player mechanics (jump, movement, attack) 
 
-1 Level
+2 Levels
 
-1 Enemy
+3 Enemy
+
+Shop
+
+Extra mechanic - Speed Up
