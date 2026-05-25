@@ -1,15 +1,7 @@
 ﻿/*
     Alex Kidd – Versión definitiva combinada (optimizada)
     (tienda + enemigos + anillo + inventario)
-*/
-/*
-Raylib example file.
-This is an example main file for a simple raylib project.
-Use this as a starting point or replace it with your code.
-
-by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
-
-Modified by: Alan, Ian, Yarley, Lluc
+    Compra automática al tocar los objetos de la tienda (si hay monedas suficientes)
 */
 #include "raylib.h"
 #include "raymath.h"
@@ -60,6 +52,10 @@ Modified by: Alan, Ian, Yarley, Lluc
 #define TILE_PUNTITA_R       31
 #define TILE_BLOC_LAVA       32
 #define TILE_LAVA            33
+
+#define TILE_SHOP_VIDA     40
+#define TILE_SHOP_ANILLO   41
+#define TILE_SHOP_RANDOM   42
 
 #define TILE_SIZE 80
 #define BLAU  Color{8, 9, 250}
@@ -171,10 +167,10 @@ struct TileDef {
     DropType drop;
 };
 
-static TileDef tileDefs[34];
+static TileDef tileDefs[45];
 
 void InitTileDefs() {
-    for (int i = 0; i < 34; ++i)
+    for (int i = 0; i < 45; ++i)
         tileDefs[i] = { blockSolidTerra, BLOCK_SOLID, 1, false, DROP_NONE };
 
     tileDefs[TILE_EMPTY] = { {0}, BLOCK_SOLID, 0, false, DROP_NONE };
@@ -210,6 +206,9 @@ void InitTileDefs() {
     tileDefs[TILE_BLOC_LAVA] = { bloqueLava, BLOCK_SOLID, 1, false, DROP_NONE };
     tileDefs[TILE_LAVA] = { {0}, BLOCK_SOLID, 0, false, DROP_NONE };
     tileDefs[TILE_BREAK_CAVE] = { bloqueRompibleCueva, BLOCK_BREAKABLE, 1, false, DROP_COIN };
+    tileDefs[TILE_SHOP_VIDA] = { VidaExtra,   BLOCK_SOLID, 0, false, DROP_NONE };
+    tileDefs[TILE_SHOP_ANILLO] = { PowerBracelet, BLOCK_SOLID, 0, false, DROP_NONE };
+    tileDefs[TILE_SHOP_RANDOM] = { ItemRandom,  BLOCK_SOLID, 0, false, DROP_NONE };
 }
 
 // ---------------------------------------------------------------------
@@ -396,7 +395,7 @@ int main(void) {
 
     int lavaFrame = 0;
     int lavaCounter = 0;
-    int lavaFrameCount = 4; // ajusta según cuántos frames tenga tu sprite
+    int lavaFrameCount = 4;
 
     // ------------------- Player init -------------------
     Player player = { 0 };
@@ -441,6 +440,7 @@ int main(void) {
 
     Vector2 petPosition = player.position;
 
+    // ------------------- Map level 1 (105 rows, 24 cols) -------------------
     int map1[105][24] = {
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
 {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -548,6 +548,7 @@ int main(void) {
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3}
     };
 
+    // ------------------- Map level 2 (105 rows, 24 cols) -------------------
     int map2[105][24] = {
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -571,14 +572,14 @@ int main(void) {
  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };
 
-    // MAPA DE LA TIENDA (level especial)
+    // ------------------- Map level shop (12 rows, 24 cols) -------------------
     int map3[12][24] = {
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,0,0,0,TILE_SHOP_VIDA,0,TILE_SHOP_ANILLO,0,TILE_SHOP_RANDOM,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -587,6 +588,7 @@ int main(void) {
          {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3}
     };
 
+    // ------------------- Map level 4 (cave) (24 rows, 180 cols) -------------------
     int map4[24][180] = {
     {3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
     {3,3,3,3,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -611,11 +613,7 @@ int main(void) {
     {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
     {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
     {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
-    {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
     };
-
-    // (In your actual file, paste the complete arrays. They are omitted here for brevity.)
-
     // ------------------- Build environment -------------------
     std::vector<EnvItem> envItems;
     LoadMapLevel(currentLevel, envItems,
@@ -740,7 +738,7 @@ int main(void) {
                 }
             }
             else {
-                // Pick up world items
+                // Pick up world items (rings)
                 Rectangle playerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
                 for (auto& wi : worldItems) {
                     if (!wi.active) continue;
@@ -754,7 +752,7 @@ int main(void) {
                 }
             }
 
-            // Pet logic
+            // Pet logic (MIAU)
             static float teleportCooldown = 0.0f;
             if (teleportCooldown > 0.0f) teleportCooldown -= deltaTime;
             float side = (player.velX >= 0.0f) ? -80.0f : 80.0f;
@@ -853,9 +851,10 @@ int main(void) {
             // Camera update
             cameraUpdaters[cameraOption](&camera, &player, envItems.data(), envItems.size(), deltaTime, screenWidth, screenHeight);
             if (currentLevel == LEVEL_SHOP) {
-                camera.target.y = 580.0f;   // Ajusta este valor si quieres más arriba/abajo
+                camera.target.y = 580.0f;
             }
-            // Collisions with special tiles
+
+            // Collisions with special tiles (including shop items and purchases)
             Rectangle playerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
             for (auto& ei : envItems) {
                 if (!ei.active) continue;
@@ -904,7 +903,7 @@ int main(void) {
                     LoadMapLevel(LEVEL_SHOP, envItems,
                         (const int*)map1, (const int*)map2, (const int*)map3, (const int*)map4,
                         105, 24, 20, 24, 12, 24, 24, 180);
-                    pterodactilos.clear();  // no enemies in shop
+                    pterodactilos.clear();
                     escorpins.clear();
                     castanyes.clear();
                     worldItems.clear();
@@ -931,12 +930,51 @@ int main(void) {
                     ringDropped = false;
                 }
 
-                // Collectible bags
+                // Collectible bags (money)
                 if (ei.collectible && CheckCollisionRecs(playerRect, ei.rect)) {
                     PlaySound(coinSound);
                     if (ei.texture.id == blockBossaCollons.id) player.coins += 100;
                     else if (ei.texture.id == blockBossaCollonsPetit.id) player.coins += 50;
                     ei.active = false;
+                }
+
+                // ---------- SHOP ITEMS: automatic purchase on touch ----------
+                if (ei.tileID == TILE_SHOP_VIDA && CheckCollisionRecs(playerRect, ei.rect)) {
+                    if (player.coins >= 100) {
+                        player.coins -= 100;
+                        player.lives++;
+                        PlaySound(coinBlockSound);
+                        ei.active = false;
+                    }
+                }
+                else if (ei.tileID == TILE_SHOP_ANILLO && CheckCollisionRecs(playerRect, ei.rect)) {
+                    if (player.coins >= 200 && player.inventoryCount < 5) {
+                        player.coins -= 200;
+                        player.inventory[player.inventoryCount++] = ITEM_RING;
+                        PlaySound(coinSound);
+                        ei.active = false;
+                    }
+                }
+                else if (ei.tileID == TILE_SHOP_RANDOM && CheckCollisionRecs(playerRect, ei.rect)) {
+                    if (player.coins >= 150) {
+                        player.coins -= 150;
+                        int r = GetRandomValue(0, 1);
+                        if (r == 0) {
+                            player.lives++;
+                            PlaySound(coinBlockSound);
+                        }
+                        else {
+                            if (player.inventoryCount < 5) {
+                                player.inventory[player.inventoryCount++] = ITEM_RING;
+                                PlaySound(coinSound);
+                            }
+                            else {
+                                player.lives++;
+                                PlaySound(coinBlockSound);
+                            }
+                        }
+                        ei.active = false;
+                    }
                 }
             }
 
@@ -952,18 +990,19 @@ int main(void) {
                 for (auto& e : escorpins) hitByEnemy(&e);
                 for (auto& c : castanyes) hitByEnemy(&c);
             }
-            // Lava mata al jugador
+
+            // Lava kills player
             if (player.alive && !player.ringActive) {
-                Rectangle playerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
+                Rectangle lavaPlayerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
                 for (auto& ei : envItems) {
                     if (!ei.active || ei.tileID != TILE_LAVA) continue;
-                    if (CheckCollisionRecs(playerRect, ei.rect)) {
+                    if (CheckCollisionRecs(lavaPlayerRect, ei.rect)) {
                         player.alive = false;
                         break;
                     }
                 }
             }
-        }
+        } // fin STATE_PLAYING
 
         // ---- DRAW ----
         BeginDrawing();
@@ -1015,7 +1054,6 @@ int main(void) {
             }
             for (auto& ei : envItems) {
                 if (!ei.active || ei.tileID == TILE_WARP) continue;
-
                 if (ei.tileID == TILE_LAVA) {
                     float frameW = (float)Lava.width / lavaFrameCount;
                     Rectangle src = { lavaFrame * frameW, 0.0f, frameW, (float)Lava.height };
@@ -1049,7 +1087,7 @@ int main(void) {
                                    AlexKiddDeath.width / 3.0f, (float)AlexKiddDeath.height };
                 DrawTextureRec(AlexKiddDeath, drec, Vector2{ player.deathX, player.deathY }, WHITE);
             }
-            
+
             if (player.alive) {
                 if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
                 else if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) LeftOrRight = 1;
@@ -1339,12 +1377,9 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int len, int LeftOrRigh
 
 void EnemyGroundMoviment(enemic* p, EnvItem* envItems, int len, float delta) {
     p->posicio.z += 2000.0f * delta;
-
     Rectangle r = { p->posicio.x, p->posicio.y, 80.0f, 76.0f };
     float moveX = p->velocitat * delta * 100.0f;
     r.x += moveX;
-
-    // Colisión horizontal (paredes normales)
     for (int i = 0; i < len; i++) {
         EnvItem* ei = &envItems[i];
         if (!ei->blocking || !ei->active) continue;
@@ -1354,8 +1389,6 @@ void EnemyGroundMoviment(enemic* p, EnvItem* envItems, int len, float delta) {
             break;
         }
     }
-
-    // Detección de lava justo delante al nivel del suelo → girar
     float checkX = (p->velocitat > 0) ? r.x + r.width + 2.0f : r.x - 2.0f;
     Rectangle lavaCheck = { checkX, r.y + r.height - 5.0f, 10.0f, 20.0f };
     for (int i = 0; i < len; i++) {
@@ -1367,11 +1400,8 @@ void EnemyGroundMoviment(enemic* p, EnvItem* envItems, int len, float delta) {
             break;
         }
     }
-
-    // Movimiento vertical con gravedad (lava NO es suelo para enemigos)
     float moveY = p->posicio.z * delta;
     r.y += moveY;
-
     for (int i = 0; i < len; i++) {
         EnvItem* ei = &envItems[i];
         if (!ei->blocking || !ei->active) continue;
@@ -1387,10 +1417,10 @@ void EnemyGroundMoviment(enemic* p, EnvItem* envItems, int len, float delta) {
             break;
         }
     }
-
     p->posicio.x = r.x;
     p->posicio.y = r.y;
 }
+
 void PterodactilMoviment(enemic* p, EnvItem* envItems, int len, float delta) {
     Rectangle r = { p->posicio.x, p->posicio.y, 80.0f, 40.0f };
     float moveX = p->velocitat * delta * 100.0f;
