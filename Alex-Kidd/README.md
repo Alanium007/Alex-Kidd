@@ -47,4 +47,4 @@ Basic player mechanics (jump, movement, attack)
 
 Shop
 
-Extra mechanic
+Extra mechanic - Speed Up
