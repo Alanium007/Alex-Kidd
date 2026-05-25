@@ -156,6 +156,7 @@ void PterodactilMoviment(enemic* p, EnvItem* envItems, int len, float delta);
 void PlayerBreakBlock(Player* player, EnvItem* envItems, int len, int LeftOrRight, std::vector<WorldItem>& worldItems, bool& ringDropped);
 void PlayerAttackEnemy(Player* player, enemic* p, int dir);
 void EnemyHitPlayer(Player* player, enemic* p);
+void EnemyGroundMoviment(enemic* p, EnvItem* envItems, int len, float delta);
 
 std::vector<EnvItem> BuildEnvItemsFromMap(const int* map, int rows, int cols);
 
@@ -189,8 +190,8 @@ void InitTileDefs() {
     tileDefs[TILE_TERRA_L] = { blockTerraL, BLOCK_SOLID, 1, false, DROP_NONE };
     tileDefs[TILE_INTERROGANT] = { blockInterrogant, BLOCK_BREAKABLE, 1, false, DROP_STAR };
     tileDefs[TILE_ESTRELLA] = { blockEstrella, BLOCK_BREAKABLE, 1, false, DROP_STAR };
-    tileDefs[TILE_EMOTICONOCALAVERAGROC] = { blockCalaveraGroc, BLOCK_SOLID, 1, false, DROP_NONE };
-    tileDefs[TILE_EMOTICONOCALAVERAROSA] = { blockCalaveraRosa, BLOCK_SOLID, 1, false, DROP_NONE };
+    tileDefs[TILE_EMOTICONOCALAVERAGROC] = { blockCalaveraGroc, BLOCK_BREAKABLE, 1, false, DROP_NONE };
+    tileDefs[TILE_EMOTICONOCALAVERAROSA] = { blockCalaveraRosa, BLOCK_BREAKABLE, 1, false, DROP_NONE };
     tileDefs[TILE_BOSSACOLLONS] = { blockBossaCollons, BLOCK_SOLID, 0, true, DROP_NONE };
     tileDefs[TILE_BOSSACOLLONSPETIT] = { blockBossaCollonsPetit, BLOCK_SOLID, 0, true, DROP_NONE };
     tileDefs[TILE_SHOP_ENTER] = { {0}, BLOCK_SOLID, 0, false, DROP_NONE };
@@ -207,7 +208,7 @@ void InitTileDefs() {
     tileDefs[TILE_PUNTITA_L] = { puntitaL, BLOCK_SOLID, 1, false, DROP_NONE };
     tileDefs[TILE_PUNTITA_R] = { puntitaR, BLOCK_SOLID, 1, false, DROP_NONE };
     tileDefs[TILE_BLOC_LAVA] = { bloqueLava, BLOCK_SOLID, 1, false, DROP_NONE };
-    tileDefs[TILE_LAVA] = { Lava, BLOCK_SOLID, 1, false, DROP_NONE };
+    tileDefs[TILE_LAVA] = { {0}, BLOCK_SOLID, 0, false, DROP_NONE };
     tileDefs[TILE_BREAK_CAVE] = { bloqueRompibleCueva, BLOCK_BREAKABLE, 1, false, DROP_COIN };
 }
 
@@ -226,6 +227,12 @@ void LoadMapLevel(int level, std::vector<EnvItem>& envItems,
     }
 }
 
+static float cam_furthestX = -2.0f;
+static float cam_fixedY = -2.0f;
+static float cam_lowestY = 0.0f;
+static float cam_fixedX = 0.0f;
+static bool  cam_init = false;
+
 void ResetGameToMenu(Player& player, Camera2D& camera, int& currentLevel,
     bool& gameOver, GameState& gameState, int& menuImageIndex,
     std::vector<EnvItem>& envItems,
@@ -236,7 +243,7 @@ void ResetGameToMenu(Player& player, Camera2D& camera, int& currentLevel,
     PlayMusicStream(titleMusic);
     gameOver = false;
     gameState = STATE_MENU;
-    player.lives = 3;
+    player.lives = 300;
     player.alive = true;
     player.coins = 0;
     player.deathAnim = false;
@@ -252,7 +259,13 @@ void ResetGameToMenu(Player& player, Camera2D& camera, int& currentLevel,
     pterodactilos = origP;
     escorpins = origE;
     castanyes = origC;
+    cam_furthestX = -2.0f;
+    cam_fixedY = -2.0f;
+    cam_lowestY = 0.0f;
+    cam_fixedX = 0.0f;
+    cam_init = false;
 }
+
 
 // ---------------------------------------------------------------------
 // MAIN
@@ -381,6 +394,10 @@ int main(void) {
     bool attacking = false;
     int attackTimer = 0;
 
+    int lavaFrame = 0;
+    int lavaCounter = 0;
+    int lavaFrameCount = 4; // ajusta según cuántos frames tenga tu sprite
+
     // ------------------- Player init -------------------
     Player player = { 0 };
     player.position = Vector2{ 550.0f, 200.0f };
@@ -388,7 +405,7 @@ int main(void) {
     player.speedY = 0.0f; player.velX = 0.0f;
     player.canJump = false; player.isJumping = false;
     player.alive = true; player.deathAnim = false;
-    player.lives = 3; player.coins = 0;
+    player.lives = 300; player.coins = 0;
     player.inventoryCount = 0;
     player.ringActive = false;
     player.ringTimer = 0.0f;
@@ -408,15 +425,14 @@ int main(void) {
     pterodactilos.push_back({ true, 2, {600.0f, 6000.0f, 0.0f} });
     pterodactilos.push_back({ true, 2, {500.0f, 6580.0f, 0.0f} });
     escorpins.reserve(5);
-    escorpins.push_back({ true, 2, {2000.0f, 1080.0f, 0.0f} });
-    escorpins.push_back({ true, 2, {4000.0f, 1080.0f, 0.0f} });
+    escorpins.push_back({ true, 2, {2000.0f, 1046.0f, 0.0f} });
+    escorpins.push_back({ true, 2, {4000.0f, 970.0f, 0.0f} });
     escorpins.push_back({ true, 2, {6000.0f, 1080.0f, 0.0f} });
     escorpins.push_back({ true, 3, {8000.0f, 1080.0f, 0.0f} });
     escorpins.push_back({ true, 3, {10000.0f,1080.0f, 0.0f} });
-    castanyes.reserve(4);
-    castanyes.push_back({ true, 2, {3000.0f, 1080.0f, 0.0f} });
+    castanyes.reserve(3);
+    castanyes.push_back({ true, 2, {3100.0f, 1000.0f, 0.0f} });
     castanyes.push_back({ true, 2, {5000.0f, 1080.0f, 0.0f} });
-    castanyes.push_back({ true, 3, {7000.0f, 1080.0f, 0.0f} });
     castanyes.push_back({ true, 3, {9000.0f, 1080.0f, 0.0f} });
 
     const std::vector<enemic> originalPterodactilos = pterodactilos;
@@ -585,9 +601,9 @@ int main(void) {
     {3,3,3,3,3,3,3,3,0,0,30,26,27,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,29,29/*Castaña*/,10,29,0,0,0,0,0,0,0,0,29,29,29,0,0,0,0,0,0,29,9,10,29,0,0,0,0,0,0/*Hueco lava*/,21,22,0,0,0,0,0,0,0,0,29,29,29,0,29,29,0,29,29,0,0,0,0,29,29,13,13,29,0,29,29,29,0,0,29,29,29,0,0,0,0,10/*Estrella rosa*/,26,26,26,26,0,0,21,20,20,20,22,0,0,25,26,0,0,0,10,13,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,3,3,3,3},
     {3,3,3,3,3,3,3,3,0,0,23,25,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,29,29/*Castaña*/,29,0,0,0,0,0,13,13,0,0,0,10,10,29,0,0,29,29,0,29,29,29,13,0,0,21,20,22,0/*Hueco lava*/,20,20,20,22,0,0,0,0,0,0,29,29,29,0,0,0,0,29,0,29,0,0,0,29,29,29,29,29,0,29,29,29,0,0,0,0,0,29,26,26,26,0/*Estrella rosa*/,0,0,0,0,0,0,20,20,20,20,20,0,0,28,27,0,0,29,11,0,0,0,0,29,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,25,24,3,3,3,3},
     {3,3,3,3,3,3,3,3,0,0,26,27,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,29,29/*Castaña*/,29,0,0,0,0,0,0,0,0,0,0,0,0,29,0,0,29,29,0,0,0,0,0,21,20,20,20,20,0/*Hueco lava*/,20,20,20,20,20,20,22,0,0,0,0,0,0,0,0,0,0,29,29,29,0,0,0,0,0,0,0,0,0,0,0,0,0,26,26,26,26,0,0,0,0,0/*Estrella rosa*/,0,0,0,0,0,21,20,20,20,20,20,0/*Calavera rosa*/,0,0,0,0,29,29,10,0,0,0,0,29,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,28,26,3,3,3,3},
-    {3,3,3,3,3,3,3,3,0,0,25,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,21,20,20,20/*Castaña*/,20,20,22,0,0,0,0,0,0,0,0,0,0,0,21,20,20,20,20,20,20,20,20,20,20,20,20,20,0/*Hueco lava*/,0,0,0,0,0,0,20,20,20,22,0,0,0,0,0,0,0,0,0,0,0,0,21,20,0,20,0,20,20,0,20,22,0,0,0,0,0,0,0,0,0,0/*Estrella rosa*/,29,29,29,0,21,20,20,20,20,20,20,0/*Calavera rosa*/,0,0,0,29,29,10,0,0,0,0/*Calavera rosa*/,0,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,25,3,3,3,3},
-    {3,3,3,3,1,1,1,1,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,22,33,33,33,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,0/*Hueco lava*/,0,10,13,0,0,0,20,20,20,20,0,0,0,0,21,20,20,20,20,20,20,20,20,20,0,20,0,20,20,0,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,12/*Calavera rosa*/,20,20,20,20,20,20,20,20,20,12/*Calavera rosa*/,20,20,20,20,22,0,0,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,3,3,3,3},
-    {3,3,3,3,1,1,1,1,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,32,32,32,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,0/*Hueco lava*/,21,20,20,20,22,0,20,20,20,20,0,0,0,0,20,20,20,20,20,20,20,20,20,20,0,20,0,20,20,0,20,20,20,20,20,20,20,20,20,20,20,20/*Estrella rosa*/,20,20,20,20,20,20,20,20,20,20,20,20/*Calavera rosa*/,20,20,20,20,20,20,20,20,20,20/*Calavera rosa*/,20,20,20,20,20,0,0,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,3,3,3,3},
+    {3,3,3,3,3,3,3,3,0,0,25,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,21,20,20,20/*Castaña*/,20,20,22,0,0,0,0,0,0,0,0,0,0,0,21,20,20,20,20,20,20,20,20,20,20,20,20,20,0/*Hueco lava*/,0,0,0,0,0,0,20,20,20,22,0,0,0,0,0,0,0,0,0,0,0,0,21,20,33,20,33,20,20,33,20,22,0,0,0,0,0,0,0,0,0,0/*Estrella rosa*/,29,29,29,0,21,20,20,20,20,20,20,0/*Calavera rosa*/,0,0,0,29,29,10,0,0,0,0/*Calavera rosa*/,0,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,25,3,3,3,3},
+    {3,3,3,3,1,1,1,1,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,22,33,33,33,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,0/*Hueco lava*/,0,10,13,0,0,0,20,20,20,20,33,33,33,33,21,20,20,20,20,20,20,20,20,20,32,20,32,20,20,32,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,12/*Calavera rosa*/,20,20,20,20,20,20,20,20,20,12/*Calavera rosa*/,20,20,20,20,22,33,33,21,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,3,3,3,3},
+    {3,3,3,3,1,1,1,1,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,32,32,32,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,33/*Hueco lava*/,21,20,20,20,22,33,20,20,20,20,32,32,32,32,20,20,20,20,20,20,20,20,20,20,32,20,32,20,20,32,20,20,20,20,20,20,20,20,20,20,20,20/*Estrella rosa*/,20,20,20,20,20,20,20,20,20,20,20,20/*Calavera rosa*/,20,20,20,20,20,20,20,20,20,20/*Calavera rosa*/,20,20,20,20,20,32,32,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,3,3,3,3},
     {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
     {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
     {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
@@ -691,6 +707,11 @@ int main(void) {
             frameEscorpi.x = pteroFrame * (EscorpiR.width / 2.0f);
             frameCastanya.x = pteroFrame * (CastanyaR.width / 2.0f);
         }
+        lavaCounter++;
+        if (lavaCounter >= (60 / 6)) {
+            lavaCounter = 0;
+            lavaFrame = (lavaFrame + 1) % lavaFrameCount;
+        }
 
         // ---- UPDATE (PLAYING) ----
         if (gameState == STATE_PLAYING) {
@@ -790,16 +811,31 @@ int main(void) {
                     PlayMusicStream(gameMusic);
                     Vector2 spawnPos = { camera.target.x + 100.0f, camera.target.y - 250.0f };
                     bool safe = false;
-                    for (float y = spawnPos.y; y < spawnPos.y + 600.0f; y += 40.0f) {
-                        Rectangle test = { spawnPos.x - 20.0f, y - 80.0f, 40.0f, 160.0f };
-                        bool coll = false;
-                        for (auto& ei : envItems)
-                            if (ei.active && ei.blocking && CheckCollisionRecs(test, ei.rect)) { coll = true; break; }
-                        if (!coll) {
-                            Rectangle feet = { spawnPos.x - 20.0f, y + 75.0f, 40.0f, 20.0f };
+
+                    for (int attempt = 0; attempt < 5 && !safe; attempt++) {
+                        spawnPos.x = camera.target.x + 100.0f + attempt * 120.0f;
+                        spawnPos.y = camera.target.y - 250.0f;
+
+                        for (float y = spawnPos.y; y < spawnPos.y + 600.0f; y += 40.0f) {
+                            Rectangle test = { spawnPos.x - 20.0f, y - 80.0f, 40.0f, 160.0f };
+                            bool coll = false;
                             for (auto& ei : envItems)
-                                if (ei.active && ei.blocking && CheckCollisionRecs(feet, ei.rect)) { safe = true; break; }
-                            if (safe) { spawnPos.y = y; break; }
+                                if (ei.active && ei.blocking && CheckCollisionRecs(test, ei.rect)) { coll = true; break; }
+                            if (!coll) {
+                                Rectangle feet = { spawnPos.x - 20.0f, y + 75.0f, 40.0f, 20.0f };
+                                bool lavaFloor = false;
+                                for (auto& ei : envItems) {
+                                    if (ei.active && ei.tileID == TILE_LAVA && CheckCollisionRecs(feet, ei.rect)) {
+                                        lavaFloor = true;
+                                        break;
+                                    }
+                                }
+                                if (!lavaFloor) {
+                                    for (auto& ei : envItems)
+                                        if (ei.active && ei.blocking && CheckCollisionRecs(feet, ei.rect)) { safe = true; break; }
+                                    if (safe) { spawnPos.y = y; break; }
+                                }
+                            }
                         }
                     }
                     player.position = spawnPos;
@@ -810,8 +846,8 @@ int main(void) {
             // Move enemies
             for (auto& p : pterodactilos) PterodactilMoviment(&p, envItems.data(), envItems.size(), deltaTime);
             if (currentLevel == 3) {
-                for (auto& e : escorpins) PterodactilMoviment(&e, envItems.data(), envItems.size(), deltaTime);
-                for (auto& c : castanyes) PterodactilMoviment(&c, envItems.data(), envItems.size(), deltaTime);
+                for (auto& e : escorpins) EnemyGroundMoviment(&e, envItems.data(), envItems.size(), deltaTime);
+                for (auto& c : castanyes) EnemyGroundMoviment(&c, envItems.data(), envItems.size(), deltaTime);
             }
 
             // Camera update
@@ -916,6 +952,17 @@ int main(void) {
                 for (auto& e : escorpins) hitByEnemy(&e);
                 for (auto& c : castanyes) hitByEnemy(&c);
             }
+            // Lava mata al jugador
+            if (player.alive && !player.ringActive) {
+                Rectangle playerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
+                for (auto& ei : envItems) {
+                    if (!ei.active || ei.tileID != TILE_LAVA) continue;
+                    if (CheckCollisionRecs(playerRect, ei.rect)) {
+                        player.alive = false;
+                        break;
+                    }
+                }
+            }
         }
 
         // ---- DRAW ----
@@ -966,6 +1013,20 @@ int main(void) {
                     Rectangle{ wi.position.x - 40.0f, wi.position.y - 40.0f + bob, 80.0f, 80.0f },
                     Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
             }
+            for (auto& ei : envItems) {
+                if (!ei.active || ei.tileID == TILE_WARP) continue;
+
+                if (ei.tileID == TILE_LAVA) {
+                    float frameW = (float)Lava.width / lavaFrameCount;
+                    Rectangle src = { lavaFrame * frameW, 0.0f, frameW, (float)Lava.height };
+                    DrawTexturePro(Lava, src, ei.rect, Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
+                }
+                else {
+                    DrawTexturePro(ei.texture,
+                        Rectangle{ 0.0f, 0.0f, (float)ei.texture.width, (float)ei.texture.height },
+                        ei.rect, Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
+                }
+            }
             for (auto& p : pterodactilos) {
                 if (!p.vida) continue;
                 Texture2D tex = (p.velocitat > 0) ? MonsterBirdR : MonsterBirdL;
@@ -988,6 +1049,7 @@ int main(void) {
                                    AlexKiddDeath.width / 3.0f, (float)AlexKiddDeath.height };
                 DrawTextureRec(AlexKiddDeath, drec, Vector2{ player.deathX, player.deathY }, WHITE);
             }
+            
             if (player.alive) {
                 if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
                 else if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) LeftOrRight = 1;
@@ -1275,6 +1337,60 @@ void PlayerBreakBlock(Player* player, EnvItem* envItems, int len, int LeftOrRigh
     }
 }
 
+void EnemyGroundMoviment(enemic* p, EnvItem* envItems, int len, float delta) {
+    p->posicio.z += 2000.0f * delta;
+
+    Rectangle r = { p->posicio.x, p->posicio.y, 80.0f, 76.0f };
+    float moveX = p->velocitat * delta * 100.0f;
+    r.x += moveX;
+
+    // Colisión horizontal (paredes normales)
+    for (int i = 0; i < len; i++) {
+        EnvItem* ei = &envItems[i];
+        if (!ei->blocking || !ei->active) continue;
+        if (CheckCollisionRecs(r, ei->rect)) {
+            p->velocitat *= -1;
+            r.x = (moveX > 0.0f) ? ei->rect.x - r.width : ei->rect.x + ei->rect.width;
+            break;
+        }
+    }
+
+    // Detección de lava justo delante al nivel del suelo → girar
+    float checkX = (p->velocitat > 0) ? r.x + r.width + 2.0f : r.x - 2.0f;
+    Rectangle lavaCheck = { checkX, r.y + r.height - 5.0f, 10.0f, 20.0f };
+    for (int i = 0; i < len; i++) {
+        EnvItem* ei = &envItems[i];
+        if (!ei->active || ei->tileID != TILE_LAVA) continue;
+        if (CheckCollisionRecs(lavaCheck, ei->rect)) {
+            p->velocitat *= -1;
+            r.x -= moveX * 2.0f;
+            break;
+        }
+    }
+
+    // Movimiento vertical con gravedad (lava NO es suelo para enemigos)
+    float moveY = p->posicio.z * delta;
+    r.y += moveY;
+
+    for (int i = 0; i < len; i++) {
+        EnvItem* ei = &envItems[i];
+        if (!ei->blocking || !ei->active) continue;
+        if (CheckCollisionRecs(r, ei->rect)) {
+            if (moveY > 0.0f) {
+                r.y = ei->rect.y - r.height;
+                p->posicio.z = 0.0f;
+            }
+            else if (moveY < 0.0f) {
+                r.y = ei->rect.y + ei->rect.height;
+                p->posicio.z = 0.0f;
+            }
+            break;
+        }
+    }
+
+    p->posicio.x = r.x;
+    p->posicio.y = r.y;
+}
 void PterodactilMoviment(enemic* p, EnvItem* envItems, int len, float delta) {
     Rectangle r = { p->posicio.x, p->posicio.y, 80.0f, 40.0f };
     float moveX = p->velocitat * delta * 100.0f;
@@ -1406,21 +1522,18 @@ void UpdateCameraPlayerBoundsPush(Camera2D* camera, Player* player, EnvItem* env
     if (player->position.y > max.y) camera->target.y = min.y + (player->position.y - max.y);
 }
 void UpdateCameraDownOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height) {
-    static float lowestY = 0.0f, fixedX = 0.0f;
-    static bool init = false;
     camera->offset = Vector2{ (float)width / 3.3f, (float)height / 1.5f };
-    if (player->position.y < 300.0f && player->position.x < 600.0f) { lowestY = 0.0f; init = false; }
-    if (!init || lowestY == 0.0f) { lowestY = player->position.y + 400.0f; fixedX = 582.0f; init = true; }
-    if (player->position.y > lowestY) lowestY = player->position.y;
-    camera->target.x = fixedX;
-    camera->target.y = lowestY;
+    if (player->position.y < 300.0f && player->position.x < 600.0f) { cam_lowestY = 0.0f; cam_init = false; }
+    if (!cam_init || cam_lowestY == 0.0f) { cam_lowestY = player->position.y + 400.0f; cam_fixedX = 582.0f; cam_init = true; }
+    if (player->position.y > cam_lowestY) cam_lowestY = player->position.y;
+    camera->target.x = cam_fixedX;
+    camera->target.y = cam_lowestY;
 }
 void UpdateCameraHorizontalOnly(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height) {
-    static float furthestX = -2.0f, fixedY = -2.0f;
-    if (player->position.x < 600.0f) { furthestX = -2.0f; fixedY = -2.0f; }
-    if (furthestX < 0.0f) { furthestX = player->position.x; fixedY = player->position.y; }
-    if (player->position.x > furthestX) furthestX = player->position.x;
+    if (player->position.x < 600.0f) { cam_furthestX = -2.0f; cam_fixedY = -2.0f; }
+    if (cam_furthestX < 0.0f) { cam_furthestX = player->position.x; cam_fixedY = player->position.y; }
+    if (player->position.x > cam_furthestX) cam_furthestX = player->position.x;
     camera->offset = Vector2{ (float)width / 3.5f, (float)height / 1.35f };
-    camera->target.x = furthestX;
-    camera->target.y = fixedY;
+    camera->target.x = cam_furthestX;
+    camera->target.y = cam_fixedY;
 }
