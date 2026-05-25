@@ -2,12 +2,14 @@
     Alex Kidd – Versión definitiva combinada (optimizada)
     (tienda + enemigos + anillo + inventario)
     Compra automática al tocar los objetos de la tienda (si hay monedas suficientes)
+    Mejora: persistencia de objetos comprados + mensajes con fondo negro
 */
 #include "raylib.h"
 #include "raymath.h"
 #include <stdio.h>
 #include <vector>
 #include <cmath>
+#include <algorithm>
 
 #define G 2000
 #define PLAYER_JUMP_SPD 1000.0f
@@ -237,7 +239,8 @@ void ResetGameToMenu(Player& player, Camera2D& camera, int& currentLevel,
     std::vector<EnvItem>& envItems,
     std::vector<enemic>& pterodactilos, std::vector<enemic>& escorpins, std::vector<enemic>& castanyes,
     const std::vector<enemic>& origP, const std::vector<enemic>& origE, const std::vector<enemic>& origC,
-    const int* map1, int rows1, int cols1) {
+    const int* map1, int rows1, int cols1,
+    std::vector<Vector2>& purchasedShopItems) {
     StopMusicStream(gameMusic);
     PlayMusicStream(titleMusic);
     gameOver = false;
@@ -258,6 +261,7 @@ void ResetGameToMenu(Player& player, Camera2D& camera, int& currentLevel,
     pterodactilos = origP;
     escorpins = origE;
     castanyes = origC;
+    purchasedShopItems.clear();
     cam_furthestX = -2.0f;
     cam_fixedY = -2.0f;
     cam_lowestY = 0.0f;
@@ -278,6 +282,13 @@ int main(void) {
     int inventariSeleccionat = 0;
     float levelStartTimer = 0.0f, menuImageTimer = 0.0f;
     int menuImageIndex = 0;
+
+    // Persistencia de objetos comprados en la tienda
+    std::vector<Vector2> purchasedShopItems;
+
+    // Mensajes de la tienda
+    const char* shopMessage = nullptr;
+    float shopMessageTimer = 0.0f;
 
     InitWindow(screenWidth, screenHeight, "Alex Kidd - Merged");
     InitAudioDevice();
@@ -544,12 +555,11 @@ int main(void) {
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
-{3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3},
 {3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3}
     };
 
-    // ------------------- Map level 2 (105 rows, 24 cols) -------------------
-    int map2[105][24] = {
+    // ------------------- Map level 2 (20 rows, 24 cols) -------------------
+    int map2[20][24] = {
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
  {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
@@ -715,7 +725,7 @@ int main(void) {
         if (gameState == STATE_PLAYING) {
             UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
-            // Inventory input
+            // Inventory input (sin cambios)
             if (IsKeyPressed(KEY_P)) {
                 mostrarInventari = !mostrarInventari;
                 if (!mostrarInventari) inventariSeleccionat = 0;
@@ -752,7 +762,7 @@ int main(void) {
                 }
             }
 
-            // Pet logic (MIAU)
+            // Pet logic (MIAU) (sin cambios)
             static float teleportCooldown = 0.0f;
             if (teleportCooldown > 0.0f) teleportCooldown -= deltaTime;
             float side = (player.velX >= 0.0f) ? -80.0f : 80.0f;
@@ -783,7 +793,7 @@ int main(void) {
                 if (player.ringTimer <= 0.0f) player.ringActive = false;
             }
 
-            // Death & respawn
+            // Death & respawn (sin cambios)
             if (!player.alive && !player.deathAnim && !gameOver) {
                 player.deathAnim = true;
                 player.deathY = player.position.y - 80.0f;
@@ -854,7 +864,7 @@ int main(void) {
                 camera.target.y = 580.0f;
             }
 
-            // Collisions with special tiles (including shop items and purchases)
+            // ---- Collisions with special tiles (including shop) ----
             Rectangle playerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
             for (auto& ei : envItems) {
                 if (!ei.active) continue;
@@ -866,7 +876,7 @@ int main(void) {
                         ResetGameToMenu(player, camera, currentLevel, gameOver, gameState, menuImageIndex,
                             envItems, pterodactilos, escorpins, castanyes,
                             originalPterodactilos, originalEscorpins, originalCastanyes,
-                            (const int*)map1, 105, 24);
+                            (const int*)map1, 105, 24, purchasedShopItems);
                         worldItems.clear();
                         ringDropped = false;
                         continue;
@@ -882,6 +892,17 @@ int main(void) {
                     LoadMapLevel(currentLevel, envItems,
                         (const int*)map1, (const int*)map2, (const int*)map3, (const int*)map4,
                         105, 24, 20, 24, 12, 24, 24, 180);
+                    // Al cargar la tienda, desactivar objetos ya comprados
+                    if (currentLevel == LEVEL_SHOP) {
+                        for (auto& item : envItems) {
+                            if (item.tileID == TILE_SHOP_VIDA || item.tileID == TILE_SHOP_ANILLO || item.tileID == TILE_SHOP_RANDOM) {
+                                Vector2 grid = { item.rect.x / TILE_SIZE, item.rect.y / TILE_SIZE };
+                                if (std::find(purchasedShopItems.begin(), purchasedShopItems.end(), grid) != purchasedShopItems.end()) {
+                                    item.active = false;
+                                }
+                            }
+                        }
+                    }
                     pterodactilos = originalPterodactilos;
                     escorpins = originalEscorpins;
                     castanyes = originalCastanyes;
@@ -890,7 +911,7 @@ int main(void) {
                     player.ringActive = false;
                 }
 
-                // Shop enter
+                // Shop enter (sin cambios)
                 if (ei.tileID == TILE_SHOP_ENTER && CheckCollisionRecs(playerRect, ei.rect) && IsKeyPressed(KEY_W) && currentLevel != LEVEL_SHOP) {
                     previousLevel = currentLevel;
                     currentLevel = LEVEL_SHOP;
@@ -903,6 +924,14 @@ int main(void) {
                     LoadMapLevel(LEVEL_SHOP, envItems,
                         (const int*)map1, (const int*)map2, (const int*)map3, (const int*)map4,
                         105, 24, 20, 24, 12, 24, 24, 180);
+                    for (auto& item : envItems) {
+                        if (item.tileID == TILE_SHOP_VIDA || item.tileID == TILE_SHOP_ANILLO || item.tileID == TILE_SHOP_RANDOM) {
+                            Vector2 grid = { item.rect.x / TILE_SIZE, item.rect.y / TILE_SIZE };
+                            if (std::find(purchasedShopItems.begin(), purchasedShopItems.end(), grid) != purchasedShopItems.end()) {
+                                item.active = false;
+                            }
+                        }
+                    }
                     pterodactilos.clear();
                     escorpins.clear();
                     castanyes.clear();
@@ -910,7 +939,7 @@ int main(void) {
                     ringDropped = false;
                 }
 
-                // Shop exit
+                // Shop exit (sin cambios)
                 if (ei.tileID == TILE_SHOP_EXIT && CheckCollisionRecs(playerRect, ei.rect) && IsKeyPressed(KEY_W) && currentLevel == LEVEL_SHOP) {
                     currentLevel = previousLevel;
                     StopMusicStream(gameMusic);
@@ -938,13 +967,20 @@ int main(void) {
                     ei.active = false;
                 }
 
-                // ---------- SHOP ITEMS: automatic purchase on touch ----------
+                // ---------- SHOP ITEMS: compra con mensajes ----------
                 if (ei.tileID == TILE_SHOP_VIDA && CheckCollisionRecs(playerRect, ei.rect)) {
                     if (player.coins >= 100) {
                         player.coins -= 100;
                         player.lives++;
                         PlaySound(coinBlockSound);
                         ei.active = false;
+                        purchasedShopItems.push_back({ ei.rect.x / TILE_SIZE, ei.rect.y / TILE_SIZE });
+                        shopMessage = "Objeto comprado";
+                        shopMessageTimer = 2.0f;
+                    }
+                    else {
+                        shopMessage = "Dinero insuficiente";
+                        shopMessageTimer = 2.0f;
                     }
                 }
                 else if (ei.tileID == TILE_SHOP_ANILLO && CheckCollisionRecs(playerRect, ei.rect)) {
@@ -953,6 +989,13 @@ int main(void) {
                         player.inventory[player.inventoryCount++] = ITEM_RING;
                         PlaySound(coinSound);
                         ei.active = false;
+                        purchasedShopItems.push_back({ ei.rect.x / TILE_SIZE, ei.rect.y / TILE_SIZE });
+                        shopMessage = "Objeto comprado";
+                        shopMessageTimer = 2.0f;
+                    }
+                    else {
+                        shopMessage = "Dinero insuficiente";
+                        shopMessageTimer = 2.0f;
                     }
                 }
                 else if (ei.tileID == TILE_SHOP_RANDOM && CheckCollisionRecs(playerRect, ei.rect)) {
@@ -974,11 +1017,18 @@ int main(void) {
                             }
                         }
                         ei.active = false;
+                        purchasedShopItems.push_back({ ei.rect.x / TILE_SIZE, ei.rect.y / TILE_SIZE });
+                        shopMessage = "Objeto comprado";
+                        shopMessageTimer = 2.0f;
+                    }
+                    else {
+                        shopMessage = "Dinero insuficiente";
+                        shopMessageTimer = 2.0f;
                     }
                 }
             }
 
-            // Enemies hit player
+            // Enemies hit player (sin cambios)
             auto hitByEnemy = [&](enemic* e) {
                 if (!player.alive || !e->vida) return;
                 Rectangle pRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
@@ -1002,6 +1052,12 @@ int main(void) {
                     }
                 }
             }
+
+            // Actualizar temporizador de mensaje de tienda
+            if (shopMessageTimer > 0.0f) {
+                shopMessageTimer -= deltaTime;
+                if (shopMessageTimer <= 0.0f) shopMessage = nullptr;
+            }
         } // fin STATE_PLAYING
 
         // ---- DRAW ----
@@ -1019,6 +1075,7 @@ int main(void) {
 
         if (gameState == STATE_PLAYING) {
             BeginMode2D(camera);
+            // Fondo de la tienda o niveles normales
             if (currentLevel == LEVEL_SHOP) {
                 float ix = 4.0f * TILE_SIZE, iy = 0.0f, iw = 16.0f * TILE_SIZE, ih = 12.0f * TILE_SIZE;
                 DrawTexturePro(TendaBackground,
@@ -1146,6 +1203,20 @@ int main(void) {
                     }
                 }
             }
+            // Mensaje de tienda con fondo negro
+            if (shopMessage && shopMessageTimer > 0.0f) {
+                int textWidth = MeasureText(shopMessage, 40);
+                int textHeight = 40;  // altura aproximada para tamaño de fuente 40
+                int padding = 10;
+                Rectangle bgRect = {
+                    (float)(screenWidth / 2 - textWidth / 2 - padding),
+                    (float)(screenHeight - 80 - padding),
+                    (float)(textWidth + 2 * padding),
+                    (float)(textHeight + 2 * padding)
+                };
+                DrawRectangleRec(bgRect, BLACK);
+                DrawText(shopMessage, screenWidth / 2 - textWidth / 2, screenHeight - 80, 40, WHITE);
+            }
             if (gameOver && !player.deathAnim) {
                 DrawTexturePro(GameOver,
                     Rectangle{ 0.0f, 0.0f, (float)GameOver.width, (float)GameOver.height },
@@ -1155,7 +1226,7 @@ int main(void) {
                     ResetGameToMenu(player, camera, currentLevel, gameOver, gameState, menuImageIndex,
                         envItems, pterodactilos, escorpins, castanyes,
                         originalPterodactilos, originalEscorpins, originalCastanyes,
-                        (const int*)map1, 105, 24);
+                        (const int*)map1, 105, 24, purchasedShopItems);
                     worldItems.clear();
                     ringDropped = false;
                 }
@@ -1259,7 +1330,7 @@ int main(void) {
 }
 
 // ---------------------------------------------------------------------
-// Function implementations
+// Function implementations (igual que antes, sin cambios)
 // ---------------------------------------------------------------------
 void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float delta) {
     if (!player->alive) return;
@@ -1488,7 +1559,7 @@ std::vector<EnvItem> BuildEnvItemsFromMap(const int* map, int rows, int cols) {
 }
 
 // ---------------------------------------------------------------------
-// Camera functions (unchanged)
+// Camera functions (sin cambios)
 // ---------------------------------------------------------------------
 void UpdateCameraCenter(Camera2D* camera, Player* player, EnvItem* envItems, int envItemsLength, float delta, int width, int height) {
     camera->offset = Vector2{ width / 2.0f, height / 2.0f };
