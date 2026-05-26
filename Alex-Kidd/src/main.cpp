@@ -90,6 +90,7 @@ Texture2D bloqueRompibleCueva, puntitaL, puntitaR, bloqueLava;
 Texture2D MIAU, negro, pedra, TendaFora, TendaBackground, ItemRandom, VidaExtra;
 Texture2D mapImage, MenuFondo, MenuTítol, Menu1, Menu2, Menu3, Menu4, Menu5, Menu6;
 Texture2D Inventari, PowerBracelet, GameOver;
+Texture2D texMapChar[2];
 
 // ---------------------------------------------------------------------
 // Audio
@@ -487,11 +488,21 @@ int main(void) {
     float levelStartTimer = 0.0f, menuImageTimer = 0.0f;
     int menuImageIndex = 0;
 
+    // ---- Variables de animación STATE_MAP ----
+    const float MAP_REVEAL_X_START = 496.0f;
+    const float MAP_REVEAL_X_END = 1359.0f;
+    const float MAP_REVEAL_WIDTH = MAP_REVEAL_X_END - MAP_REVEAL_X_START;
+    const Vector2 MAP_CHAR_POS = { 1360.0f * (screenWidth / 1900.0f),
+                                        622.0f * (screenHeight / 900.0f) };
+    float mapRevealProgress = 0.0f;   // 0.0 → 1.0
+    float mapCharTimer = 0.0f;
+    int   mapCharFrame = 0;
+
     // Persistencia de objetos comprados en la tienda
     std::vector<Vector2> purchasedShopItems;
 
     // ---- DialogBox state ----
-    DialogBox* activeDialog = nullptr;  // nullptr = ningún diálogo activo
+    DialogBox* activeDialog = nullptr;
     float      dialogHoldTimer = 0.0f;     // espera tras completar la animación
     bool       dialogFreeze = false;    // congela al jugador mientras hay diálogo
     bool       shopWelcomeDone = false;    // evita repetir el diálogo de bienvenida
@@ -567,6 +578,24 @@ int main(void) {
     Inventari = LoadTexture("resources/Inventari.png");
     PowerBracelet = LoadTexture("resources/PowerBracelet.png");
     GameOver = LoadTexture("resources/GameOver.png");
+
+    // Personaje comiendo en STATE_MAP: recortar zona y hacer negro→transparente
+    // Zona del personaje dentro del mapa: x=1360-1503, y=622-831 (coordenadas imagen 1900x900)
+    {
+        const int CHAR_X1 = 1360, CHAR_Y1 = 622;
+        const int CHAR_X2 = 1503, CHAR_Y2 = 831;
+        Rectangle charCrop = { (float)CHAR_X1, (float)CHAR_Y1,
+                                (float)(CHAR_X2 - CHAR_X1), (float)(CHAR_Y2 - CHAR_Y1) };
+        const char* charPaths[2] = { "resources/Comiendo1.png", "resources/Comiendo2.png" };
+        for (int i = 0; i < 2; i++) {
+            Image img = LoadImage(charPaths[i]);
+            ImageColorReplace(&img, BLACK, BLANK);
+            ImageCrop(&img, charCrop);
+            texMapChar[i] = LoadTextureFromImage(img);
+            UnloadImage(img);
+        }
+    }
+
     fontBm = LoadFont("resources/alex-kidd-in-miracle-world-sms.otf");
 
     // ------------------- Audio -------------------
@@ -581,6 +610,11 @@ int main(void) {
     SetMusicVolume(gameOverMusic, 0.6f);
     jumpSound = LoadSound("resources/Jump.wav");
     levelStartSound = LoadSound("resources/LevelStart.wav");
+    // Calcular la duración real de LevelStart.wav para sincronizar la animación del mapa
+    Wave lvlWave = LoadWave("resources/LevelStart.wav");
+    const float MAP_ANIM_DURATION = (lvlWave.frameCount > 0 && lvlWave.sampleRate > 0) ? (float)lvlWave.frameCount / (float)lvlWave.sampleRate: 2.5f;
+    UnloadWave(lvlWave);
+    const float MAP_CHAR_FRAME_TIME = MAP_ANIM_DURATION / (3.0f * 2.0f);
     coinSound = LoadSound("resources/CoinCollection.wav");
     punchSound = LoadSound("resources/Punch.wav");
     coinBlockSound = LoadSound("resources/CoinBlock.wav");
@@ -862,6 +896,14 @@ int main(void) {
     SetTargetFPS(60);
     PlayMusicStream(titleMusic);
 
+    //Resetear la animación cada vez que se entra en STATE_MAP
+    auto ResetMapAnim = [&]() {
+        mapRevealProgress = 0.0f;
+        mapCharTimer = 0.0f;
+        mapCharFrame = 0;
+        levelStartTimer = 0.0f;
+        };
+
     // ------------------- Main loop -------------------
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
@@ -874,6 +916,7 @@ int main(void) {
                 PlaySound(levelStartSound);
                 levelStarting = true;
                 gameState = STATE_MAP;
+                ResetMapAnim();
             }
         }
 
@@ -1132,6 +1175,7 @@ int main(void) {
                     StopMusicStream(gameMusic);
                     PlaySound(levelStartSound);
                     gameState = STATE_MAP;
+                    ResetMapAnim();
                     player.alive = true; player.speedY = 0.0f; player.velX = 0.0f; player.deathAnim = false;
                     if (currentLevel == 2) player.position = Vector2{ 550.0f, 200.0f };
                     else if (currentLevel == 3) player.position = Vector2{ 1000.0f, 1000.0f };
@@ -1140,6 +1184,7 @@ int main(void) {
                     LoadMapLevel(currentLevel, envItems,
                         (const int*)map1, (const int*)map2, (const int*)map3, (const int*)map4,
                         105, 24, 20, 24, 12, 24, 24, 180);
+
                     // Al cargar la tienda, desactivar objetos ya comprados
                     if (currentLevel == LEVEL_SHOP) {
                         for (auto& item : envItems) {
@@ -1166,6 +1211,7 @@ int main(void) {
                     StopMusicStream(gameMusic);
                     PlaySound(levelStartSound);
                     gameState = STATE_MAP;
+                    ResetMapAnim();
                     player.alive = true; player.speedY = 0.0f; player.velX = 0.0f; player.deathAnim = false;
                     player.position = Vector2{ 360.0f, 800.0f };
                     camera.target = Vector2{ 360.0f, 800.0f };
@@ -1194,6 +1240,7 @@ int main(void) {
                     StopMusicStream(gameMusic);
                     PlaySound(levelStartSound);
                     gameState = STATE_MAP;
+                    ResetMapAnim();
                     player.alive = true; player.speedY = 0.0f; player.velX = 0.0f; player.deathAnim = false;
                     if (currentLevel == 2) player.position = Vector2{ 1000.0f, 400.0f };
                     else player.position = Vector2{ 550.0f, 200.0f };
@@ -1527,11 +1574,54 @@ int main(void) {
         }
         else if (gameState == STATE_MAP) {
             levelStartTimer += deltaTime;
+
+            // ---- Animación del mapa ----
+            if (mapRevealProgress < 1.0f) {
+                mapRevealProgress = levelStartTimer / MAP_ANIM_DURATION;
+                if (mapRevealProgress > 1.0f) mapRevealProgress = 1.0f;
+            }
+            mapCharTimer += deltaTime;
+            if (mapCharTimer >= MAP_CHAR_FRAME_TIME) {
+                mapCharTimer -= MAP_CHAR_FRAME_TIME;
+                mapCharFrame = (mapCharFrame + 1) % 2;
+            }
+
+            // ---- Draw animación del mapa ----
             ClearBackground(BLACK);
-            DrawTexturePro(mapImage,
-                Rectangle{ 0.0f, 0.0f, (float)mapImage.width, (float)mapImage.height },
-                Rectangle{ 0.0f, 0.0f, (float)screenWidth, (float)screenHeight },
-                Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
+            float scaleX = (float)screenWidth / 1900.0f;
+            float scaleY = (float)screenHeight / 900.0f;
+
+            //Parte del fondo ya revelada (de izquierda a derecha)
+            float revealedW = MAP_REVEAL_WIDTH * mapRevealProgress;
+            if (revealedW > 0.0f) {
+                // Dibujar la franja revelada del mapa (todo el alto, solo la columna revelada)
+                // También dibujamos la parte izquierda del mapa (antes del inicio del reveal)
+                Rectangle mapSrc = { MAP_REVEAL_X_START, 0.0f, revealedW, 900.0f };
+                Rectangle mapDst = { MAP_REVEAL_X_START * scaleX, 0.0f,
+                                     revealedW * scaleX, (float)screenHeight };
+                DrawTexturePro(mapImage, mapSrc, mapDst, { 0.0f, 0.0f }, 0.0f, WHITE);
+            }
+
+            //Zona estática del mapa a la izquierda del reveal
+            {
+                Rectangle mapSrc = { 0.0f, 0.0f, MAP_REVEAL_X_START, 900.0f };
+                Rectangle mapDst = { 0.0f, 0.0f, MAP_REVEAL_X_START * scaleX, (float)screenHeight };
+                DrawTexturePro(mapImage, mapSrc, mapDst, { 0.0f, 0.0f }, 0.0f, WHITE);
+            }
+
+            //Personaje comiendo
+            {
+                float charW = (float)texMapChar[0].width * scaleX;
+                float charH = (float)texMapChar[0].height * scaleY;
+                DrawTexturePro(texMapChar[mapCharFrame],
+                    Rectangle{ 0.0f, 0.0f,
+                                (float)texMapChar[mapCharFrame].width,
+                                (float)texMapChar[mapCharFrame].height },
+                    Rectangle{ MAP_CHAR_POS.x, MAP_CHAR_POS.y, charW, charH },
+                    Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
+            }
+
+            // ---- Transición a STATE_PLAYING cuando termina el sonido ----
             if (!IsSoundPlaying(levelStartSound)) {
                 PlayMusicStream(gameMusic);
                 gameState = STATE_PLAYING;
@@ -1617,6 +1707,7 @@ int main(void) {
     UnloadTexture(Menu1); UnloadTexture(Menu2); UnloadTexture(Menu3);
     UnloadTexture(Menu4); UnloadTexture(Menu5); UnloadTexture(Menu6);
     UnloadTexture(Inventari); UnloadTexture(PowerBracelet); UnloadTexture(GameOver);
+    UnloadTexture(texMapChar[0]); UnloadTexture(texMapChar[1]);
     UnloadSound(jumpSound); UnloadSound(levelStartSound);
     UnloadSound(coinSound); UnloadSound(punchSound);
     UnloadSound(coinBlockSound); UnloadSound(blockBreakSound); UnloadSound(lifeTakenSound);
