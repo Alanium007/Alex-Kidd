@@ -10,6 +10,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <string>
 
 #define G 2000
 #define PLAYER_JUMP_SPD 1000.0f
@@ -276,6 +277,188 @@ void ResetGameToMenu(Player& player, Camera2D& camera, int& currentLevel,
 
 
 // ---------------------------------------------------------------------
+// DialogBox (Animacio Quadre de Text)
+// ---------------------------------------------------------------------
+static std::vector<float> BuildCharPositions(Font font, const std::string& line,
+    float startX, float fontSize)
+{
+    std::vector<float> positions;
+    float x = startX;
+    for (char c : line) {
+        char buf[2] = { c, '\0' };
+        x += MeasureTextEx(font, buf, fontSize, 2.0f).x + 2.0f;
+        positions.push_back(x);
+    }
+    return positions;
+}
+
+class DialogBox {
+    enum State { BORDER, TEXT };
+
+    Rectangle   rect;
+    Font        font;
+    float       fontSize = 30.0f;
+    float       padding = 16.0f;
+    float       textSpeed = 1000.0f;
+    float       borderSpeed = 1500.0f;
+
+    float borderProgress = 0.0f;
+    float totalPerimeter = 0.0f;
+    float animX = 0.0f;
+
+    std::vector<std::string>         lines;        // pares: línea de texto + línea de retorno vacía
+    std::vector<std::vector<float>>  charPositions;
+    size_t currentLine = 0;
+    State  state = BORDER;
+    bool   done = false;
+
+    static constexpr float BORDER_T = 6.0f;
+
+    float TextLineH()   const { return fontSize + 4.0f; }
+    float ReturnLineH() const { return fontSize * 0.33f; }
+
+public:
+    DialogBox(Rectangle pos, const std::vector<std::string>& dialogue, Font f)
+        : rect(pos), font(f)
+    {
+        // Intercalar líneas reales con líneas de retorno vacías
+        for (size_t i = 0; i < dialogue.size(); ++i) {
+            lines.push_back(dialogue[i]);
+            if (i + 1 < dialogue.size()) lines.push_back("");
+        }
+
+        // Pre-calcular posiciones de caracteres para cada línea de texto
+        charPositions.resize(lines.size());
+        for (size_t i = 0; i < lines.size(); i += 2)
+            charPositions[i] = BuildCharPositions(font, lines[i], rect.x + padding, fontSize);
+
+        totalPerimeter = (rect.width + rect.height) * 2.0f;
+        animX = rect.x + padding;
+    }
+
+    void Update(float dt) {
+        if (done) return;
+
+        if (state == BORDER) {
+            borderProgress += borderSpeed * dt;
+            if (borderProgress >= totalPerimeter) {
+                borderProgress = totalPerimeter;
+                state = TEXT;
+            }
+            return;
+        }
+
+        // state == TEXT
+        const float startX = rect.x + padding;
+        const float endX = rect.x + rect.width - padding;
+        const bool  isText = (currentLine % 2 == 0);
+        const float target = isText ? endX : startX;
+        const float dir = isText ? 1.0f : -1.0f;
+
+        animX += dir * textSpeed * dt;
+        if ((isText && animX >= target) || (!isText && animX <= target)) {
+            animX = target;
+            if (currentLine + 1 < lines.size()) {
+                ++currentLine;
+                animX = isText ? endX : startX;  // posición de inicio del siguiente segmento
+            }
+            else {
+                done = true;
+            }
+        }
+    }
+
+    void Draw() const {
+        DrawBorder();
+        if (state == BORDER) return;
+        DrawContent();
+    }
+
+    bool IsDone() const { return done; }
+
+private:
+    void DrawBorder() const {
+        // Dibuja el borde recorre el perímetro en orden
+        struct Side { float x, y, w, h; float length; };
+        Side sides[4] = {
+            { rect.x,                            rect.y,                             rect.width,  BORDER_T,  rect.width  },
+            { rect.x + rect.width - BORDER_T,    rect.y,                             BORDER_T,    rect.height, rect.height },
+            { rect.x,                            rect.y + rect.height - BORDER_T,    rect.width,  BORDER_T,  rect.width  },
+            { rect.x,                            rect.y,                             BORDER_T,    rect.height, rect.height },
+        };
+        // Correcciones para que el borde izquierdo y derecho no se superpongan
+        sides[1].y = rect.y;
+        sides[2].x = rect.x + rect.width - sides[2].w;   // empieza por la derecha
+        sides[3].y = rect.y + rect.height - BORDER_T;    // empieza por abajo
+
+        float remaining = borderProgress;
+        // Arriba: izq->der
+        float d = (remaining > rect.width) ? rect.width : remaining;
+        if (d > 0) DrawRectangle(rect.x, rect.y, d, BORDER_T, BLACK);
+        remaining -= rect.width;
+        // Derecha: arriba->abajo
+        d = (remaining > rect.height) ? rect.height : remaining;
+        if (remaining > 0 && d > 0)
+            DrawRectangle(rect.x + rect.width - BORDER_T, rect.y, BORDER_T, d, BLACK);
+        remaining -= rect.height;
+        // Abajo: der->izq
+        d = (remaining > rect.width) ? rect.width : remaining;
+        if (remaining > 0 && d > 0)
+            DrawRectangle(rect.x + rect.width - d, rect.y + rect.height - BORDER_T, d, BORDER_T, BLACK);
+        remaining -= rect.width;
+        // Izquierda: abajo->arriba
+        d = (remaining > rect.height) ? rect.height : remaining;
+        if (remaining > 0 && d > 0)
+            DrawRectangle(rect.x, rect.y + rect.height - d, BORDER_T, d, BLACK);
+    }
+
+    void DrawContent() const {
+        if (done)
+            DrawRectangle(rect.x + BORDER_T, rect.y + BORDER_T,
+                rect.width - BORDER_T * 2, rect.height - BORDER_T * 2, BLACK);
+
+        const float startX = rect.x + padding;
+        const float endX = rect.x + rect.width - padding;
+        const float totalW = endX - startX;
+        float y = rect.y + padding;
+
+        for (size_t i = 0; i <= currentLine && i < lines.size(); ++i) {
+            const bool isText = (i % 2 == 0);
+            const float lineH = isText ? TextLineH() : ReturnLineH();
+            const bool  isCurrent = (i == currentLine);
+
+            if (!isCurrent) {
+                // Línea ya completada
+                DrawRectangle(startX, y, totalW, lineH, BLACK);
+                if (isText)
+                    DrawTextEx(font, lines[i].c_str(), { startX, y }, fontSize, 2.0f, WHITE);
+            }
+            else {
+                // Línea en animación
+                if (isText) {
+                    float fillW = animX - startX;
+                    DrawRectangle(startX, y, fillW, lineH, BLACK);
+                    float drawX = startX;
+                    for (size_t j = 0; j < lines[i].size(); ++j) {
+                        if (animX >= charPositions[i][j]) {
+                            char buf[2] = { lines[i][j], '\0' };
+                            DrawTextEx(font, buf, { drawX, y }, fontSize, 2.0f, WHITE);
+                        }
+                        char buf[2] = { lines[i][j], '\0' };
+                        drawX += MeasureTextEx(font, buf, fontSize, 2.0f).x + 2.0f;
+                    }
+                }
+                else {
+                    float fillW = endX - animX;
+                    DrawRectangle(animX, y, fillW, lineH, BLACK);
+                }
+            }
+            y += lineH;
+        }
+    }
+};
+
+// ---------------------------------------------------------------------
 // MAIN
 // ---------------------------------------------------------------------
 int main(void) {
@@ -291,9 +474,12 @@ int main(void) {
     // Persistencia de objetos comprados en la tienda
     std::vector<Vector2> purchasedShopItems;
 
-    // Mensajes de la tienda
-    const char* shopMessage = nullptr;
-    float shopMessageTimer = 0.0f;
+    // ---- DialogBox state ----
+    DialogBox* activeDialog = nullptr;  // nullptr = ningún diálogo activo
+    float      dialogHoldTimer = 0.0f;     // espera tras completar la animación
+    bool       dialogFreeze = false;    // congela al jugador mientras hay diálogo
+    bool       shopWelcomeDone = false;    // evita repetir el diálogo de bienvenida
+    float      shopDialogCooldown = 0.0f; // cooldown tras cerrar un diálogo de tienda (evita repetición)
 
     InitWindow(screenWidth, screenHeight, "Alex Kidd - Merged");
     InitAudioDevice();
@@ -729,7 +915,26 @@ int main(void) {
 
         // ---- UPDATE (PLAYING) ----
         if (gameState == STATE_PLAYING) {
-            UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
+            // ---- Dialog update (freeze gameplay while active) ----
+            if (activeDialog) {
+                bool wasDone = activeDialog->IsDone();
+                activeDialog->Update(deltaTime);
+                if (activeDialog->IsDone()) {
+                    if (!wasDone) dialogHoldTimer = 0.7f; // Resetear al terminar la animacion
+                    dialogHoldTimer -= deltaTime;
+                    if (dialogHoldTimer <= 0.0f) {
+                        delete activeDialog;
+                        activeDialog = nullptr;
+                        dialogFreeze = false;
+                        dialogHoldTimer = 0.0f;
+                        shopDialogCooldown = 1.5f; // espera antes de permitir otro diálogo de tienda
+                    }
+                }
+            }
+            if (shopDialogCooldown > 0.0f) shopDialogCooldown -= deltaTime;
+
+            if (!dialogFreeze)
+                UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
             // Inventory input (sin cambios)
             if (IsKeyPressed(KEY_P)) {
@@ -868,6 +1073,17 @@ int main(void) {
             cameraUpdaters[cameraOption](&camera, &player, envItems.data(), envItems.size(), deltaTime, screenWidth, screenHeight);
             if (currentLevel == LEVEL_SHOP) {
                 camera.target.y = 580.0f;
+                // Diálogo de bienvenida: se lanza la primera vez que entramos a la tienda
+                if (!shopWelcomeDone && !activeDialog) {
+                    shopWelcomeDone = true;
+                    delete activeDialog;
+                    activeDialog = new DialogBox(
+                        { screenWidth / 2 - 500, 180, 840, 110 },
+                        { "Welcome! Please buy", "the things that you like." },
+                        fontBm
+                    );
+                    dialogFreeze = true;
+                }
             }
 
             // ---- Collisions with special tiles (including shop) ----
@@ -943,6 +1159,8 @@ int main(void) {
                     castanyes.clear();
                     worldItems.clear();
                     ringDropped = false;
+                    // Diálogo de bienvenida a la tienda
+                    shopWelcomeDone = false;
                 }
 
                 // Shop exit (sin cambios)
@@ -974,6 +1192,9 @@ int main(void) {
                 }
 
                 // ---------- SHOP ITEMS: compra con mensajes ----------
+                //No lanzar un nuevo diálogo si ya hay uno activo o si estamos en cooldown
+                if (dialogFreeze || shopDialogCooldown > 0.0f) continue;
+
                 if (ei.tileID == TILE_SHOP_VIDA && CheckCollisionRecs(playerRect, ei.rect)) {
                     if (player.coins >= 100) {
                         player.coins -= 100;
@@ -981,12 +1202,22 @@ int main(void) {
                         PlaySound(coinBlockSound);
                         ei.active = false;
                         purchasedShopItems.push_back({ ei.rect.x / TILE_SIZE, ei.rect.y / TILE_SIZE });
-                        shopMessage = "Objeto comprado";
-                        shopMessageTimer = 2.0f;
+                        delete activeDialog;
+                        activeDialog = new DialogBox(
+                            { screenWidth / 2 - 500, 180, 360, 70 },
+                            { "Thank you." },
+                            fontBm
+                        );
+                        dialogFreeze = true;
                     }
                     else {
-                        shopMessage = "Dinero insuficiente";
-                        shopMessageTimer = 2.0f;
+                        delete activeDialog;
+                        activeDialog = new DialogBox(
+                            { screenWidth / 2 - 500, 180, 580, 70 },
+                            { "Not enough coins." },
+                            fontBm
+                        );
+                        dialogFreeze = true;
                     }
                 }
                 else if (ei.tileID == TILE_SHOP_ANILLO && CheckCollisionRecs(playerRect, ei.rect)) {
@@ -996,12 +1227,22 @@ int main(void) {
                         PlaySound(coinSound);
                         ei.active = false;
                         purchasedShopItems.push_back({ ei.rect.x / TILE_SIZE, ei.rect.y / TILE_SIZE });
-                        shopMessage = "Objeto comprado";
-                        shopMessageTimer = 2.0f;
+                        delete activeDialog;
+                        activeDialog = new DialogBox(
+                            { screenWidth / 2 - 500, 180, 360, 70 },
+                            { "Thank you." },
+                            fontBm
+                        );
+                        dialogFreeze = true;
                     }
                     else {
-                        shopMessage = "Dinero insuficiente";
-                        shopMessageTimer = 2.0f;
+                        delete activeDialog;
+                        activeDialog = new DialogBox(
+                            { screenWidth / 2 - 500, 180, 580, 70 },
+                            { "Not enough coins." },
+                            fontBm
+                        );
+                        dialogFreeze = true;
                     }
                 }
                 else if (ei.tileID == TILE_SHOP_RANDOM && CheckCollisionRecs(playerRect, ei.rect)) {
@@ -1024,12 +1265,22 @@ int main(void) {
                         }
                         ei.active = false;
                         purchasedShopItems.push_back({ ei.rect.x / TILE_SIZE, ei.rect.y / TILE_SIZE });
-                        shopMessage = "Objeto comprado";
-                        shopMessageTimer = 2.0f;
+                        delete activeDialog;
+                        activeDialog = new DialogBox(
+                            { screenWidth / 2 - 500, 180, 360, 70 },
+                            { "Thank you." },
+                            fontBm
+                        );
+                        dialogFreeze = true;
                     }
                     else {
-                        shopMessage = "Dinero insuficiente";
-                        shopMessageTimer = 2.0f;
+                        delete activeDialog;
+                        activeDialog = new DialogBox(
+                            { screenWidth / 2 - 500, 180, 580, 70 },
+                            { "Not enough coins." },
+                            fontBm
+                        );
+                        dialogFreeze = true;
                     }
                 }
             }
@@ -1057,12 +1308,6 @@ int main(void) {
                         break;
                     }
                 }
-            }
-
-            // Actualizar temporizador de mensaje de tienda
-            if (shopMessageTimer > 0.0f) {
-                shopMessageTimer -= deltaTime;
-                if (shopMessageTimer <= 0.0f) shopMessage = nullptr;
             }
         } // fin STATE_PLAYING
 
@@ -1137,6 +1382,22 @@ int main(void) {
                         ei.rect, Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
                 }
             }
+            // Etiquetas de precio sobre los ítems de la tienda (desaparecen al comprar)
+            if (currentLevel == LEVEL_SHOP) {
+                for (auto& ei : envItems) {
+                    if (!ei.active) continue;
+                    const char* label = nullptr;
+                    if (ei.tileID == TILE_SHOP_VIDA)   label = "100";
+                    else if (ei.tileID == TILE_SHOP_ANILLO) label = "200";
+                    else if (ei.tileID == TILE_SHOP_RANDOM) label = "150";
+                    if (!label) continue;
+                    Vector2 textSize = MeasureTextEx(fontBm, label, 20.0f, 2.0f);
+                    float tx = ei.rect.x + (ei.rect.width - textSize.x) / 2.0f;
+                    float ty = ei.rect.y - 20.0f - textSize.y;
+                    DrawTextEx(fontBm, label, { tx, ty }, 20.0f, 2.0f, YELLOW);
+                }
+            }
+
             for (auto& p : pterodactilos) {
                 if (!p.vida) continue;
                 Texture2D tex = (p.velocitat > 0) ? MonsterBirdR : MonsterBirdL;
@@ -1218,19 +1479,9 @@ int main(void) {
                     }
                 }
             }
-            // Mensaje de tienda con fondo negro
-            if (shopMessage && shopMessageTimer > 0.0f) {
-                int textWidth = MeasureText(shopMessage, 40);
-                int textHeight = 40;  // altura aproximada para tamaño de fuente 40
-                int padding = 10;
-                Rectangle bgRect = {
-                    (float)(screenWidth / 2 - textWidth / 2 - padding),
-                    (float)(screenHeight - 80 - padding),
-                    (float)(textWidth + 2 * padding),
-                    (float)(textHeight + 2 * padding)
-                };
-                DrawRectangleRec(bgRect, BLACK);
-                DrawText(shopMessage, screenWidth / 2 - textWidth / 2, screenHeight - 80, 40, WHITE);
+            // Diálogo animado de la tienda (se dibuja en screen-space, fuera del modo 2D)
+            if (activeDialog) {
+                activeDialog->Draw();
             }
             if (gameOver && !player.deathAnim) {
                 DrawTexturePro(GameOver,
@@ -1302,6 +1553,10 @@ int main(void) {
         }
         EndDrawing();
     }
+
+    // Cleanup dialog if still active
+    delete activeDialog;
+    activeDialog = nullptr;
 
     // Unload everything
     UnloadTexture(background); UnloadTexture(nuvol);
