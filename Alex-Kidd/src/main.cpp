@@ -120,6 +120,9 @@ typedef struct Player {
     int inventoryCount;
     bool ringActive;
     float ringTimer;
+    float acc;
+    float friction;
+    float maxSpeed;
 } Player;
 
 typedef enum { BLOCK_SOLID, BLOCK_BREAKABLE } BlockType;
@@ -626,6 +629,9 @@ int main(void) {
     player.inventoryCount = 0;
     player.ringActive = false;
     player.ringTimer = 0.0f;
+    player.acc = PLAYER_ACC;
+    player.friction = PLAYER_FRICTION;
+    player.maxSpeed = PLAYER_MAX_SPEED;
     for (int i = 0; i < 5; i++) player.inventory[i] = ITEM_NONE;
 
     // ------------------- Enemies -------------------
@@ -964,6 +970,9 @@ int main(void) {
                     if (item == ITEM_RING && !player.ringActive) {
                         player.ringActive = true;
                         player.ringTimer = RING_DURATION;
+                        player.acc = 2000.0f;
+                        player.friction = 1000.0f;
+                        player.maxSpeed = 900.0f;
                         for (int i = inventariSeleccionat; i < player.inventoryCount - 1; i++)
                             player.inventory[i] = player.inventory[i + 1];
                         player.inventory[--player.inventoryCount] = ITEM_NONE;
@@ -1016,7 +1025,12 @@ int main(void) {
             // Ring timer
             if (player.ringActive) {
                 player.ringTimer -= deltaTime;
-                if (player.ringTimer <= 0.0f) player.ringActive = false;
+                if (player.ringTimer <= 0.0f) {
+                    player.ringActive = false;
+                    player.acc = PLAYER_ACC;
+                    player.friction = PLAYER_FRICTION;
+                    player.maxSpeed = PLAYER_MAX_SPEED;
+                }
             }
 
             // Death & respawn
@@ -1634,7 +1648,7 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
             player->speedY -= JUMP_HOLD_FORCE * delta;
     }
     if (IsKeyReleased(KEY_SPACE)) player->isJumping = false;
-    float acc = PLAYER_ACC, friction = PLAYER_FRICTION;
+    float acc = player->acc, friction = player->friction;
     if (IsKeyDown(KEY_D) && !IsKeyDown(KEY_S)) {
         if (player->velX < 0.0f) player->velX += friction * delta;
         else player->velX += acc * delta;
@@ -1647,8 +1661,8 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
         if (player->velX > 0.0f) { player->velX -= friction * delta; if (player->velX < 0.0f) player->velX = 0.0f; }
         else if (player->velX < 0.0f) { player->velX += friction * delta; if (player->velX > 0.0f) player->velX = 0.0f; }
     }
-    if (player->velX > PLAYER_MAX_SPEED) player->velX = PLAYER_MAX_SPEED;
-    if (player->velX < -PLAYER_MAX_SPEED) player->velX = -PLAYER_MAX_SPEED;
+    if (player->velX > player->maxSpeed) player->velX = player->maxSpeed;
+    if (player->velX < -player->maxSpeed) player->velX = -player->maxSpeed;
     float moveX = player->velX * delta;
     playerRect.x += moveX;
     for (int i = 0; i < envItemsLength; i++) {
