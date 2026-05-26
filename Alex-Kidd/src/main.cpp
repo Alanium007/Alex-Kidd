@@ -15,9 +15,9 @@
 
 #define G 2000
 #define PLAYER_JUMP_SPD 1000.0f
-#define PLAYER_ACC 1000.0f
-#define PLAYER_FRICTION 1000.0f
-#define PLAYER_MAX_SPEED 400.0f
+#define PLAYER_ACC 2500.0f
+#define PLAYER_FRICTION 3000.0f
+#define PLAYER_MAX_SPEED 480.0f
 #define JUMP_HOLD_FORCE 1200.0f
 #define MAX_JUMP_TIME 0.2f
 #define RING_DURATION 10.0f
@@ -1013,8 +1013,8 @@ int main(void) {
                     if (item == ITEM_RING && !player.ringActive) {
                         player.ringActive = true;
                         player.ringTimer = RING_DURATION;
-                        player.acc = 2000.0f;
-                        player.friction = 1000.0f;
+                        player.acc = 6000.0f;
+                        player.friction = 5000.0f;
                         player.maxSpeed = 900.0f;
                         for (int i = inventariSeleccionat; i < player.inventoryCount - 1; i++)
                             player.inventory[i] = player.inventory[i + 1];
@@ -1357,11 +1357,25 @@ int main(void) {
             }
 
             // Enemies hit player – usando GetPlayerBodyRect
+            // Enemies hit player – detección con pasos múltiples para alta velocidad
             auto hitByEnemy = [&](enemic* e) {
-                if (!player.alive || !e->vida) return;
-                Rectangle pRect = GetPlayerBodyRect(&player);
-                Rectangle eRect = { e->posicio.x, e->posicio.y, 80.0f, 40.0f };
-                if (CheckCollisionRecs(pRect, eRect) && !player.ringActive) player.alive = false;
+                if (!player.alive || !e->vida || player.ringActive) return;
+                float speed = fabsf(player.velX);
+                int steps = (int)(speed * deltaTime / 30.0f) + 1;
+                if (steps > 8) steps = 8;
+                Rectangle eRect = { e->posicio.x, e->posicio.y, 80.0f, 80.0f };
+                for (int s = 0; s <= steps; s++) {
+                    float t = (float)s / (float)steps;
+                    float interpX = player.position.x - player.velX * deltaTime * (1.0f - t);
+                    float interpY = player.position.y - player.speedY * deltaTime * (1.0f - t);
+                    float hWidth = PLAYER_HITBOX_WIDTH;
+                    float hHeight = (IsKeyDown(KEY_S) && player.canJump) ? PLAYER_CROUCH_HITBOX_HEIGHT : PLAYER_HITBOX_HEIGHT;
+                    Rectangle pRect = { interpX - hWidth / 2.0f, interpY - hHeight, hWidth, hHeight };
+                    if (CheckCollisionRecs(pRect, eRect)) {
+                        player.alive = false;
+                        return;
+                    }
+                }
                 };
             for (auto& p : pterodactilos) hitByEnemy(&p);
             if (currentLevel == 3) {
