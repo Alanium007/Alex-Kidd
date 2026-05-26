@@ -1491,12 +1491,12 @@ int main(void) {
             // HUD
             for (int i = 0; i < player.lives; i++)
                 DrawTextureEx(AlexKiddIdleR, Vector2{ 20.0f + i * 45.0f, 60.0f }, 0.0f, 0.35f, WHITE);
-            DrawText(TextFormat("Coins: %d", player.coins), 20, 20, 30, YELLOW);
+            DrawTextEx(fontBm, TextFormat("Coins: %d", player.coins), Vector2{ 20, 20 }, 20, 0, YELLOW);
             if (player.ringActive) {
-                DrawText(TextFormat("RING ACTIVE (%.1f)", player.ringTimer), screenWidth / 2 - 130, 20, 28, GOLD);
+                DrawTextEx(fontBm, TextFormat("RING ACTIVE (%.1f)", player.ringTimer), Vector2{ screenWidth / 2 - 130, 20 }, 20, 0, GOLD);
             }
             if (player.inventoryCount > 0) {
-                DrawText("P = Inventari", screenWidth - 220, 20, 22, WHITE);
+                DrawTextEx(fontBm, "P = Inventari", Vector2{ screenWidth - 220, 20 }, 14, 0, WHITE);
                 for (int i = 0; i < player.inventoryCount; i++) {
                     if (player.inventory[i] == ITEM_RING) {
                         DrawTexturePro(PowerBracelet,
@@ -1560,8 +1560,8 @@ int main(void) {
                 Rectangle{ 0.0f, 0.0f, (float)screenWidth, (float)screenHeight },
                 Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
             float slotSize = 80.0f;
-            float startX = screenWidth / 2.0f - (5.0f * slotSize + 40.0f) / 2.0f;
-            float slotY = screenHeight / 2.0f - slotSize / 2.0f;
+            float startX = screenWidth / 2.0f - (5.0f * slotSize + 40.0f) / 2.0f + 250.0f;
+            float slotY = screenHeight / 2.0f - slotSize / 2.0f + 300.0f;
             for (int i = 0; i < 5; i++) {
                 float x = startX + i * (slotSize + 10.0f);
                 Color col = (i == inventariSeleccionat) ? YELLOW : WHITE;
@@ -1573,10 +1573,10 @@ int main(void) {
                         Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
                 }
             }
-            DrawText("A/D: seleccionar   ENTER: usar   P: tancar", screenWidth / 2 - 280, (int)slotY + 100, 26, WHITE);
+            DrawTextEx(fontBm, "A/D: seleccionar   ENTER: usar   P: tancar", Vector2{ screenWidth / 2 - 550, (float)slotY - 50 }, 14, 0, WHITE);
             if (player.inventoryCount > 0 && inventariSeleccionat < player.inventoryCount &&
                 player.inventory[inventariSeleccionat] == ITEM_RING)
-                DrawText("Anell del Poder", screenWidth / 2 - 100, (int)slotY - 50, 28, GOLD);
+                DrawTextEx(fontBm, "Anell del Poder", Vector2{ screenWidth / 2 + 135 , (float)slotY - 40 }, 16, 0, GOLD);
         }
         EndDrawing();
     }
