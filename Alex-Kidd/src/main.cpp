@@ -3,6 +3,7 @@
     (tienda + enemigos + anillo + inventario)
     Compra automática al tocar los objetos de la tienda (si hay monedas suficientes)
     Mejora: persistencia de objetos comprados + mensajes con fondo negro
+    MODIFICACIÓN: Hitbox del jugador personalizable y más pequeña al agacharse
 */
 #include "raylib.h"
 #include "raymath.h"
@@ -15,11 +16,16 @@
 #define G 2000
 #define PLAYER_JUMP_SPD 1000.0f
 #define PLAYER_ACC 1000.0f
-#define PLAYER_FRICTION 600.0f
+#define PLAYER_FRICTION 1000.0f
 #define PLAYER_MAX_SPEED 400.0f
 #define JUMP_HOLD_FORCE 1200.0f
 #define MAX_JUMP_TIME 0.2f
 #define RING_DURATION 10.0f
+
+//HITBOX
+#define PLAYER_HITBOX_WIDTH 70.0f            // ancho de la hitbox
+#define PLAYER_HITBOX_HEIGHT 126.0f          // alto de pie
+#define PLAYER_CROUCH_HITBOX_HEIGHT 60.0f    // alto al agacharse
 
 #define TILE_EMPTY 0
 #define TILE_SOLID 1
@@ -162,6 +168,13 @@ void PlayerAttackEnemy(Player* player, enemic* p, int dir);
 void EnemyHitPlayer(Player* player, enemic* p);
 void EnemyGroundMoviment(enemic* p, EnvItem* envItems, int len, float delta);
 
+// --- NUEVA FUNCIÓN AUXILIAR PARA OBTENER LA HITBOX DEL JUGADOR ---
+Rectangle GetPlayerBodyRect(Player* player) {
+    float width = PLAYER_HITBOX_WIDTH;
+    float height = (IsKeyDown(KEY_S) && player->canJump) ? PLAYER_CROUCH_HITBOX_HEIGHT : PLAYER_HITBOX_HEIGHT;
+    return { player->position.x - width / 2.0f, player->position.y - height, width, height };
+}
+
 std::vector<EnvItem> BuildEnvItemsFromMap(const int* map, int rows, int cols);
 
 // ---------------------------------------------------------------------
@@ -199,7 +212,7 @@ void InitTileDefs() {
     tileDefs[TILE_BOSSACOLLONS] = { blockBossaCollons, BLOCK_SOLID, 0, true, DROP_NONE };
     tileDefs[TILE_BOSSACOLLONSPETIT] = { blockBossaCollonsPetit, BLOCK_SOLID, 0, true, DROP_NONE };
     tileDefs[TILE_SHOP_ENTER] = { {0}, BLOCK_SOLID, 0, false, DROP_NONE };
-    tileDefs[TILE_SHOP_EXIT] = { blockPorta, BLOCK_SOLID, 0, false, DROP_NONE };
+    tileDefs[TILE_SHOP_EXIT] = { {0}, BLOCK_SOLID, 0, false, DROP_NONE };
     tileDefs[TILE_TERRA_COVA] = { terraCova, BLOCK_SOLID, 1, false, DROP_NONE };
     tileDefs[TILE_TERRA_COVA_L] = { terraCovaL, BLOCK_SOLID, 1, false, DROP_NONE };
     tileDefs[TILE_TERRA_COVA_R] = { terraCovaR, BLOCK_SOLID, 1, false, DROP_NONE };
@@ -586,6 +599,8 @@ int main(void) {
     Rectangle frameRecL = { 0.0f, 0.0f, AlexKiddWalkL.width / 4.0f, (float)AlexKiddWalkL.height };
     Rectangle frameRecJump = { 0.0f, 0.0f, (float)AlexKiddJumpR.width, (float)AlexKiddJumpR.height };
     Rectangle frameRecPuny = { 0.0f, 0.0f, (float)AlexKiddPunyR.width, (float)AlexKiddPunyR.height };
+    Rectangle frameRecCrouchR = { 0.0f, 0.0f, (float)AlexKiddCrouchR.width, (float)AlexKiddCrouchR.height };
+    Rectangle frameRecCrouchL = { 0.0f, 0.0f, (float)AlexKiddCrouchL.width, (float)AlexKiddCrouchL.height };
     Rectangle framePterodactil = { 0.0f, 0.0f, MonsterBirdR.width / 2.0f, (float)MonsterBirdR.height };
     Rectangle frameEscorpi = { 0.0f, 0.0f, EscorpiR.width / 2.0f, (float)EscorpiR.height };
     Rectangle frameCastanya = { 0.0f, 0.0f, CastanyaR.width / 2.0f, (float)CastanyaR.height };
@@ -784,8 +799,8 @@ int main(void) {
          {3,3,3,3,0,0,0,0,0,TILE_SHOP_VIDA,0,TILE_SHOP_ANILLO,0,TILE_SHOP_RANDOM,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-         {3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
-         {3,3,3,3,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,19,3,3,3,3},
+         {3,3,3,3,0,0,19,19,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
+         {3,3,3,3,0,0,19,19,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3},
          {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3},
          {3,3,3,3,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,3,3,3,3}
     };
@@ -920,14 +935,14 @@ int main(void) {
                 bool wasDone = activeDialog->IsDone();
                 activeDialog->Update(deltaTime);
                 if (activeDialog->IsDone()) {
-                    if (!wasDone) dialogHoldTimer = 0.7f; // Resetear al terminar la animacion
+                    if (!wasDone) dialogHoldTimer = 0.7f;
                     dialogHoldTimer -= deltaTime;
                     if (dialogHoldTimer <= 0.0f) {
                         delete activeDialog;
                         activeDialog = nullptr;
                         dialogFreeze = false;
                         dialogHoldTimer = 0.0f;
-                        shopDialogCooldown = 1.5f; // espera antes de permitir otro diálogo de tienda
+                        shopDialogCooldown = 1.5f;
                     }
                 }
             }
@@ -936,7 +951,7 @@ int main(void) {
             if (!dialogFreeze)
                 UpdatePlayer(&player, envItems.data(), envItems.size(), deltaTime);
 
-            // Inventory input (sin cambios)
+            // Inventory input
             if (IsKeyPressed(KEY_P)) {
                 mostrarInventari = !mostrarInventari;
                 if (!mostrarInventari) inventariSeleccionat = 0;
@@ -959,8 +974,8 @@ int main(void) {
                 }
             }
             else {
-                // Pick up world items (rings)
-                Rectangle playerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
+                // Pick up world items (rings) – usar la misma hitbox
+                Rectangle playerRect = GetPlayerBodyRect(&player);
                 for (auto& wi : worldItems) {
                     if (!wi.active) continue;
                     wi.bobTimer += deltaTime;
@@ -973,7 +988,7 @@ int main(void) {
                 }
             }
 
-            // Pet logic (MIAU) (sin cambios)
+            // Pet logic (MIAU)
             static float teleportCooldown = 0.0f;
             if (teleportCooldown > 0.0f) teleportCooldown -= deltaTime;
             float side = (player.velX >= 0.0f) ? -80.0f : 80.0f;
@@ -1004,7 +1019,7 @@ int main(void) {
                 if (player.ringTimer <= 0.0f) player.ringActive = false;
             }
 
-            // Death & respawn (sin cambios)
+            // Death & respawn
             if (!player.alive && !player.deathAnim && !gameOver) {
                 player.deathAnim = true;
                 player.deathY = player.position.y - 80.0f;
@@ -1030,11 +1045,9 @@ int main(void) {
                     PlayMusicStream(gameMusic);
                     Vector2 spawnPos = { camera.target.x + 100.0f, camera.target.y - 250.0f };
                     bool safe = false;
-
                     for (int attempt = 0; attempt < 5 && !safe; attempt++) {
                         spawnPos.x = camera.target.x + 100.0f + attempt * 120.0f;
                         spawnPos.y = camera.target.y - 250.0f;
-
                         for (float y = spawnPos.y; y < spawnPos.y + 600.0f; y += 40.0f) {
                             Rectangle test = { spawnPos.x - 20.0f, y - 80.0f, 40.0f, 160.0f };
                             bool coll = false;
@@ -1073,7 +1086,6 @@ int main(void) {
             cameraUpdaters[cameraOption](&camera, &player, envItems.data(), envItems.size(), deltaTime, screenWidth, screenHeight);
             if (currentLevel == LEVEL_SHOP) {
                 camera.target.y = 580.0f;
-                // Diálogo de bienvenida: se lanza la primera vez que entramos a la tienda
                 if (!shopWelcomeDone && !activeDialog) {
                     shopWelcomeDone = true;
                     delete activeDialog;
@@ -1087,7 +1099,7 @@ int main(void) {
             }
 
             // ---- Collisions with special tiles (including shop) ----
-            Rectangle playerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
+            Rectangle playerRect = GetPlayerBodyRect(&player);
             for (auto& ei : envItems) {
                 if (!ei.active) continue;
 
@@ -1133,7 +1145,7 @@ int main(void) {
                     player.ringActive = false;
                 }
 
-                // Shop enter (sin cambios)
+                // Shop enter
                 if (ei.tileID == TILE_SHOP_ENTER && CheckCollisionRecs(playerRect, ei.rect) && IsKeyPressed(KEY_W) && currentLevel != LEVEL_SHOP) {
                     previousLevel = currentLevel;
                     currentLevel = LEVEL_SHOP;
@@ -1159,11 +1171,10 @@ int main(void) {
                     castanyes.clear();
                     worldItems.clear();
                     ringDropped = false;
-                    // Diálogo de bienvenida a la tienda
                     shopWelcomeDone = false;
                 }
 
-                // Shop exit (sin cambios)
+                // Shop exit
                 if (ei.tileID == TILE_SHOP_EXIT && CheckCollisionRecs(playerRect, ei.rect) && IsKeyPressed(KEY_W) && currentLevel == LEVEL_SHOP) {
                     currentLevel = previousLevel;
                     StopMusicStream(gameMusic);
@@ -1192,7 +1203,6 @@ int main(void) {
                 }
 
                 // ---------- SHOP ITEMS: compra con mensajes ----------
-                //No lanzar un nuevo diálogo si ya hay uno activo o si estamos en cooldown
                 if (dialogFreeze || shopDialogCooldown > 0.0f) continue;
 
                 if (ei.tileID == TILE_SHOP_VIDA && CheckCollisionRecs(playerRect, ei.rect)) {
@@ -1285,10 +1295,10 @@ int main(void) {
                 }
             }
 
-            // Enemies hit player (sin cambios)
+            // Enemies hit player – usando GetPlayerBodyRect
             auto hitByEnemy = [&](enemic* e) {
                 if (!player.alive || !e->vida) return;
-                Rectangle pRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
+                Rectangle pRect = GetPlayerBodyRect(&player);
                 Rectangle eRect = { e->posicio.x, e->posicio.y, 80.0f, 40.0f };
                 if (CheckCollisionRecs(pRect, eRect) && !player.ringActive) player.alive = false;
                 };
@@ -1300,7 +1310,7 @@ int main(void) {
 
             // Lava kills player
             if (player.alive && !player.ringActive) {
-                Rectangle lavaPlayerRect = { player.position.x - 20.0f, player.position.y - 80.0f, 40.0f, 80.0f };
+                Rectangle lavaPlayerRect = GetPlayerBodyRect(&player);
                 for (auto& ei : envItems) {
                     if (!ei.active || ei.tileID != TILE_LAVA) continue;
                     if (CheckCollisionRecs(lavaPlayerRect, ei.rect)) {
@@ -1335,7 +1345,6 @@ int main(void) {
 
         if (gameState == STATE_PLAYING) {
             BeginMode2D(camera);
-            // Fondo de la tienda o niveles normales
             if (currentLevel == LEVEL_SHOP) {
                 float ix = 4.0f * TILE_SIZE, iy = 0.0f, iw = 16.0f * TILE_SIZE, ih = 12.0f * TILE_SIZE;
                 DrawTexturePro(TendaBackground,
@@ -1382,7 +1391,7 @@ int main(void) {
                         ei.rect, Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
                 }
             }
-            // Etiquetas de precio sobre los ítems de la tienda (desaparecen al comprar)
+            // Etiquetas de precio sobre los ítems de la tienda
             if (currentLevel == LEVEL_SHOP) {
                 for (auto& ei : envItems) {
                     if (!ei.active) continue;
@@ -1424,7 +1433,11 @@ int main(void) {
             if (player.alive) {
                 if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) LeftOrRight = 0;
                 else if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) LeftOrRight = 1;
-                Vector2 pos = { player.position.x - 40.0f, player.position.y - 129.0f };
+                Vector2 pos;
+                if (IsKeyDown(KEY_S) && player.canJump)
+                    pos = { player.position.x - 40.0f, player.position.y - 98.0f };  // Ajusta según la altura real de la textura de crouch
+                else
+                    pos = { player.position.x - 40.0f, player.position.y - 129.0f };
                 if (attacking) {
                     if (LeftOrRight == 0) DrawTextureRec(AlexKiddPunyR, frameRecPuny, pos, WHITE);
                     else DrawTextureRec(AlexKiddPunyL, frameRecPuny, Vector2{ player.position.x - 75.0f, player.position.y - 129.0f }, WHITE);
@@ -1444,8 +1457,8 @@ int main(void) {
                     else DrawTextureRec(AlexKiddJumpL, frameRecJump, pos, WHITE);
                 }
                 else if (IsKeyDown(KEY_S) && player.canJump) {
-                    if (LeftOrRight == 0) DrawTextureRec(AlexKiddCrouchR, frameRecJump, pos, WHITE);
-                    else DrawTextureRec(AlexKiddCrouchL, frameRecJump, pos, WHITE);
+                    if (LeftOrRight == 0) DrawTextureRec(AlexKiddCrouchR, frameRecCrouchR, pos, WHITE);
+                    else DrawTextureRec(AlexKiddCrouchL, frameRecCrouchL, pos, WHITE);
                 }
                 if (IsKeyPressed(KEY_ENTER) && !attacking && !mostrarInventari) {
                     attacking = true;
@@ -1479,7 +1492,7 @@ int main(void) {
                     }
                 }
             }
-            // Diálogo animado de la tienda (se dibuja en screen-space, fuera del modo 2D)
+            // Diálogo animado de la tienda
             if (activeDialog) {
                 activeDialog->Draw();
             }
@@ -1601,11 +1614,11 @@ int main(void) {
 }
 
 // ---------------------------------------------------------------------
-// Function implementations (igual que antes, sin cambios)
+// Function implementations
 // ---------------------------------------------------------------------
 void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float delta) {
     if (!player->alive) return;
-    Rectangle playerRect = { player->position.x - 35.0f, player->position.y - 100.0f, 70.0f, 100.0f };
+    Rectangle playerRect = GetPlayerBodyRect(player);   // <-- USA LA NUEVA FUNCIÓN
     if (IsKeyPressed(KEY_SPACE) && player->canJump && !IsKeyDown(KEY_S)) {
         player->speedY = -PLAYER_JUMP_SPD;
         PlaySound(jumpSound);
@@ -1673,6 +1686,9 @@ void UpdatePlayer(Player* player, EnvItem* envItems, int envItemsLength, float d
     player->position.x = playerRect.x + playerRect.width / 2.0f;
     player->position.y = playerRect.y + playerRect.height;
 }
+
+// Las demás funciones permanecen exactamente igual que en el código original
+// ... (PlayerBreakBlock, EnemyGroundMoviment, etc.)
 
 void PlayerBreakBlock(Player* player, EnvItem* envItems, int len, int LeftOrRight, std::vector<WorldItem>& worldItems, bool& ringDropped) {
     float w = 50.0f, h = 40.0f;
